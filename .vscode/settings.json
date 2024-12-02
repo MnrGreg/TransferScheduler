@@ -1,0 +1,26 @@
+{
+  // "solidity.packageDefaultDependenciesContractsDirectory": "src",
+  // "solidity.packageDefaultDependenciesDirectory": "lib",
+  "solidity.compileUsingRemoteVersion": "v0.8.27",
+  "[solidity]": {
+    "editor.defaultFormatter": "JuanBlanco.solidity"
+  },
+  "solidity.formatter": "forge",
+  // "search.exclude": {
+  //   "lib": true
+  // },
+  "files.associations": {
+    ".gas-snapshot": "julia"
+  },
+  "solidity.monoRepoSupport": false,
+  "editor.formatOnSave": true,
+  // "solidity.remappings": [
+  //   "@openzeppelin/=contracts/lib/openzeppelin-contracts/",
+  //   "openzeppelin-contracts/=contracts/lib/openzeppelin-contracts/",
+  //   "solmate/=contracts/lib/solmate/",
+  //   "ds-test/=contracts/lib/solmate/lib/ds-test/src/",
+  //   "forge-std/=contracts/lib/forge-std/src/",
+  //   "forge-gas-snapshot/=contracts/lib/forge-gas-snapshot/src/"
+  //   //"permit2=contracts/lib/permit2/"
+  // ]
+}

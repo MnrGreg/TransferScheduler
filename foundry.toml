@@ -1,0 +1,8 @@
+[profile.default]
+solc = "0.8.27"
+src = "constracts/src"
+out = "out"
+libs = ["contracts/lib"]
+bytecode_hash = "none"
+optimizer = true
+via_ir = true
