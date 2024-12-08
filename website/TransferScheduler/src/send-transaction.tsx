@@ -7,7 +7,7 @@ import { types } from './Permit2TypedData';
 import { signTypedData, writeContract, simulateContract } from '@wagmi/core';
 import { config } from './wagmi';
 import { abi } from './abi';
-import { TransferSchedulerContract, nativeTokenContract, permit2Contract } from './constants'
+import { TransferSchedulerContract, fillerGasToken, permit2Contract } from './constants'
 
 export function SendTransaction() {
     const { address, chainId } = useAccount();
@@ -46,8 +46,9 @@ export function SendTransaction() {
         const amount = BigInt(amountStr) * BigInt(10 ** 18);
         const maxBaseFee = Number(maxBaseFeeStr);
 
-        // TODO: Lookup relay fee (gas fee x1) from onchain contract
-        const relayCharge = BigInt(maxBaseFee * 100000 * 2);
+        //const fillerGasToken = ; // TODO: lookup from contract
+        const fillerGasCommissionPercentage = 100;  // TODO: lookup from contract
+        const relayCharge = BigInt(maxBaseFee * 100000 * (1 + fillerGasCommissionPercentage / 100));
 
         // Use secure random number for nonce
         const array = new Uint8Array(8);
@@ -72,7 +73,7 @@ export function SendTransaction() {
                             amount: amount,
                         },
                         {
-                            token: nativeTokenContract,
+                            token: fillerGasToken,
                             amount: relayCharge,
                         },
                     ],

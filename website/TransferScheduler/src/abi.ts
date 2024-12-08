@@ -5,7 +5,7 @@ export const abi = [
             {
                 "name": "_permit",
                 "type": "address",
-                "internalType": "contract ISignatureTransfer"
+                "internalType": "contract SignatureTransfer"
             }
         ],
         "stateMutability": "nonpayable"
@@ -18,7 +18,7 @@ export const abi = [
             {
                 "name": "",
                 "type": "address",
-                "internalType": "contract ISignatureTransfer"
+                "internalType": "contract SignatureTransfer"
             }
         ],
         "stateMutability": "view"
@@ -51,6 +51,11 @@ export const abi = [
         "type": "function",
         "name": "executeTransfer",
         "inputs": [
+            {
+                "name": "owner",
+                "type": "address",
+                "internalType": "address"
+            },
             {
                 "name": "nonce",
                 "type": "uint256",
@@ -87,11 +92,6 @@ export const abi = [
                 "internalType": "uint256"
             },
             {
-                "name": "owner",
-                "type": "address",
-                "internalType": "address"
-            },
-            {
                 "name": "signature",
                 "type": "bytes",
                 "internalType": "bytes"
@@ -99,6 +99,32 @@ export const abi = [
         ],
         "outputs": [],
         "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
+        "name": "getGasCommissionPercentage",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "getGasToken",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "address",
+                "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
     },
     {
         "type": "function",

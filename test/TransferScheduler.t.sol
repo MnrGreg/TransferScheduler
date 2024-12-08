@@ -8,6 +8,7 @@ import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol"
 //import {InvalidNonce, SignatureExpired} from "permit2/src/PermitErrors.sol";
 import {SignatureTransfer} from "permit2/src/SignatureTransfer.sol";
 import {TokenProvider} from "./utils/TokenProvider.sol";
+//import {Permit2} from "permit2/src/Permit2.sol";
 
 import {TransferScheduler} from "contracts/src/TransferScheduler.sol";
 
@@ -27,6 +28,7 @@ contract TransferSchedulerTest is Test, TokenProvider {
     );
 
     SignatureTransfer signatureTransfer;
+    //Permit2 permit2;
 
     TransferScheduler transferScheduler;
 
@@ -52,12 +54,17 @@ contract TransferSchedulerTest is Test, TokenProvider {
         transferScheduler = new TransferScheduler(signatureTransfer);
         DOMAIN_SEPARATOR = signatureTransfer.DOMAIN_SEPARATOR();
 
+        // permit2 = new Permit2();
+        // transferScheduler = new TransferScheduler(permit2);
+        // DOMAIN_SEPARATOR = permit2.DOMAIN_SEPARATOR();
+
         // set basefee
         vm.fee(800000);
 
         initializeERC20Tokens();
         setERC20TestTokens(owner);
         setERC20TestTokenApprovals(vm, owner, address(signatureTransfer));
+        //setERC20TestTokenApprovals(vm, owner, address(permit2));
 
         // * definee the permitted token spender details
         ISignatureTransfer.TokenPermissions[] memory permitted = new ISignatureTransfer.TokenPermissions[](2);

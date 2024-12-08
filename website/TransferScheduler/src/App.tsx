@@ -71,7 +71,7 @@ const GetCompletedTransfers = () => {
 };
 
 function App() {
-  const { address, status: accountStatus } = useAccount();
+  const { address, chainId, status: accountStatus } = useAccount();
   const { connect, connectors, error: connectError, status: isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
   const [eventLogs, setEventLogs] = React.useState<any | null>(null);
@@ -103,6 +103,8 @@ function App() {
           Status: {accountStatus}
           <br />
           Address: {address}
+          <br />
+          chainId: {chainId}
         </div>
 
         {accountStatus === 'connected' && (

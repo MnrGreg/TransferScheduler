@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-//import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-import {IPermit2, ISignatureTransfer} from "permit2/src/interfaces/IPermit2.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+//import {IPermit2, ISignatureTransfer} from "permit2/src/interfaces/IPermit2.sol";
 import {SignatureTransfer} from "permit2/src/SignatureTransfer.sol";
-import {Permit2} from "permit2/src/Permit2.sol";
-import {PermitHash} from "permit2/src/libraries/PermitHash.sol";
+//import {Permit2} from "permit2/src/Permit2.sol";
+//import {PermitHash} from "permit2/src/libraries/PermitHash.sol";
 import {SignatureVerification} from "permit2/src/libraries/SignatureVerification.sol";
 
 contract TransferScheduler {
@@ -15,10 +15,20 @@ contract TransferScheduler {
         PERMIT2 = _permit;
     }
 
+    // Permit2 public immutable PERMIT2;
+
+    // constructor(Permit2 _permit) {
+    //     PERMIT2 = _permit;
+    // }
+
     // * dApps can query the queue for a particular wallet address and show future transfers
     // * Fillers can query onchain
     mapping(address => mapping(uint256 => bool)) public transfers;
     mapping(address => uint256[]) public addressNonceIndices;
+
+    //address fillerGasToken = 0x8ce361602B935680E8DeC218b820ff5056BeB7af; // WETH
+    address fillerGasToken = 0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9; // MOCKERC20 Token1
+    uint256 fillerGasCommissionPercentage = 100;
 
     // emit event for fillers to discovery and schedule
     // ToDo: should nonces be indexed?
@@ -82,6 +92,14 @@ contract TransferScheduler {
         return nonceList;
     }
 
+    function getGasCommissionPercentage() public view returns (uint256) {
+        return fillerGasCommissionPercentage;
+    }
+
+    function getGasToken() public view returns (address) {
+        return fillerGasToken;
+    }
+
     function executeTransfer(
         address owner,
         uint256 nonce,
@@ -104,22 +122,22 @@ contract TransferScheduler {
         ISignatureTransfer.TokenPermissions[] memory permitted = new ISignatureTransfer.TokenPermissions[](2);
         permitted[0] = ISignatureTransfer.TokenPermissions({token: token, amount: amount});
         permitted[1] = ISignatureTransfer.TokenPermissions({
-            token: 0x8ce361602B935680E8DeC218b820ff5056BeB7af,
-            //token: 0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9, // MOCKERC20 Token1
-            amount: maxBaseFee * 100000 * 2
+            token: fillerGasToken,
+            amount: maxBaseFee * 100000 * (1 + fillerGasCommissionPercentage / 100)
         });
 
         ISignatureTransfer.SignatureTransferDetails[] memory transferDetails =
             new ISignatureTransfer.SignatureTransferDetails[](2);
         transferDetails[0] = ISignatureTransfer.SignatureTransferDetails({to: to, requestedAmount: amount});
         // Refund filler for transaction (100k gas usage) and add commission in gas
-        transferDetails[1] =
-            ISignatureTransfer.SignatureTransferDetails({to: msg.sender, requestedAmount: block.basefee * 100000 * 2});
+        transferDetails[1] = ISignatureTransfer.SignatureTransferDetails({
+            to: msg.sender,
+            requestedAmount: block.basefee * 100000 * (1 + fillerGasCommissionPercentage / 100)
+        });
 
-        // console.log("start verifiy");
-        // bytes32 hashed = PermitHash.hash(_permit);
+        // bytes32 hashed =
+        //     hash(ISignatureTransfer.PermitBatchTransferFrom({permitted: permitted, nonce: nonce, deadline: deadline}));
         // SignatureVerification.verify(signature, hashed, owner);
-        // console.log("end verifiy");
 
         PERMIT2.permitTransferFrom(
             ISignatureTransfer.PermitBatchTransferFrom({permitted: permitted, nonce: nonce, deadline: deadline}),
@@ -136,4 +154,36 @@ contract TransferScheduler {
             emit TransferExecuted(owner, nonce); // ToDo: consider removing in place of fillers checking state - lots of historical transfers may add overhead
         }
     }
+
+    // function hash(ISignatureTransfer.PermitBatchTransferFrom memory permit) internal view returns (bytes32) {
+    //     uint256 numPermitted = permit.permitted.length;
+    //     bytes32 _PERMIT_BATCH_TRANSFER_FROM_TYPEHASH = keccak256(
+    //         "PermitBatchTransferFrom(TokenPermissions[] permitted,address spender,uint256 nonce,uint256 deadline)TokenPermissions(address token,uint256 amount)"
+    //     );
+    //     bytes32[] memory tokenPermissionHashes = new bytes32[](numPermitted);
+
+    //     for (uint256 i = 0; i < numPermitted; ++i) {
+    //         tokenPermissionHashes[i] = _hashTokenPermissions(permit.permitted[i]);
+    //     }
+
+    //     return keccak256(
+    //         abi.encode(
+    //             _PERMIT_BATCH_TRANSFER_FROM_TYPEHASH,
+    //             keccak256(abi.encodePacked(tokenPermissionHashes)),
+    //             address(this),
+    //             permit.nonce,
+    //             permit.deadline
+    //         )
+    //     );
+    // }
+
+    // function _hashTokenPermissions(ISignatureTransfer.TokenPermissions memory permitted)
+    //     private
+    //     pure
+    //     returns (bytes32)
+    // {
+    //     bytes32 _TOKEN_PERMISSIONS_TYPEHASH = keccak256("TokenPermissions(address token,uint256 amount)");
+
+    //     return keccak256(abi.encode(_TOKEN_PERMISSIONS_TYPEHASH, permitted));
+    // }
 }
