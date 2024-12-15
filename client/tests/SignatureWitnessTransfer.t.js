@@ -33,7 +33,7 @@ describe("VaultSignautureWitnessTransfer", function () {
                 },
                 spender: vault.address,
                 nonce: 11,
-                deadline: ethers_1.constants.MaxUint256
+                notAfterDate: ethers_1.constants.MaxUint256
             };
             const witness = {
                 witnessTypeName: 'Witness',
@@ -61,7 +61,7 @@ describe("VaultSignautureWitnessTransfer", function () {
                 },
                 spender: vault.address,
                 nonce: 12,
-                deadline: ethers_1.constants.MaxUint256
+                notAfterDate: ethers_1.constants.MaxUint256
             };
             const witness = {
                 witnessTypeName: 'Witness',
@@ -87,7 +87,7 @@ describe("VaultSignautureWitnessTransfer", function () {
                 },
                 spender: vault.address,
                 nonce: 13,
-                deadline: ethers_1.constants.MaxUint256
+                notAfterDate: ethers_1.constants.MaxUint256
             };
             const witness = {
                 witnessTypeName: 'Witness',

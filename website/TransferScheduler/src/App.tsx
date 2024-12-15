@@ -1,26 +1,86 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAccount, useConnect, useDisconnect, useWatchContractEvent } from 'wagmi';
-import { SendTransaction } from './send-transaction';
+import { QueueTransferTransaction } from './send-transaction';
 import { readContract } from '@wagmi/core';
 import { abi } from './abi';
 import { config } from './wagmi';
-import { TransferSchedulerContract } from './constants'
+import { TransferSchedulerContractAddress } from './constants'
+import { getContractEvents } from 'viem/actions';
 
+const GetScheduledTransferContractAllowance = ({ relayGasToken }: { relayGasToken: `0x${string}` | null }) => {
+  const { address } = useAccount();
+  const [error, setError] = React.useState<Error | null>(null);
+  const [allowance, setGasTokenAllowance] = React.useState<bigint | null>(null);
+
+  React.useEffect(() => {
+    async function fetchAllowance() {
+      if (address && relayGasToken) {
+        try {
+          const allowanceResult = await readContract(config, {
+            abi: [{
+              name: 'allowance',
+              type: 'function',
+              stateMutability: 'view',
+              inputs: [
+                { name: 'owner', type: 'address' },
+                { name: 'spender', type: 'address' },
+              ],
+              outputs: [{ type: 'uint256' }],
+            }],
+            address: relayGasToken,
+            functionName: 'allowance',
+            args: [address, TransferSchedulerContractAddress],
+          });
+          setGasTokenAllowance(allowanceResult);
+        } catch (err: any) {
+          setError(err);
+        }
+      }
+    }
+    fetchAllowance();
+  }, [address, relayGasToken]);
+
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
+
+  return <div>Gas token allowance: {allowance ? allowance.toString() : 'Loading...'}</div>
+};
 
 const GetUncompletedTransfers = () => {
+  type queuedTransferRecords = {
+    nonce: BigInt;
+    blockNumber: BigInt;
+  }[];
+
   const { address } = useAccount();
-  const [transfers, setTransfers] = React.useState(null);
+  const [transfers, setTransfers] = React.useState<queuedTransferRecords | null>(null);
+  const [eventLogs, setEventLogs] = React.useState<any | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
+  const [updateTrigger, setUpdateTrigger] = React.useState(0);
+
+  useWatchContractEvent({
+    address: TransferSchedulerContractAddress,
+    abi,
+    eventName: 'TransferScheduled',
+    onLogs: () => setUpdateTrigger(prev => prev + 1),
+  });
+
+  useWatchContractEvent({
+    address: TransferSchedulerContractAddress,
+    abi,
+    eventName: 'TransferExecuted',
+    onLogs: () => setUpdateTrigger(prev => prev + 1),
+  });
 
   React.useEffect(() => {
     async function fetchTransfers() {
       if (address) {
         try {
-
           const transfers = await readContract(config, {
             abi,
-            address: TransferSchedulerContract,
-            functionName: 'getTransfers',
+            address: TransferSchedulerContractAddress,
+            functionName: 'getScheduledTransfers',
             args: [address, false],
           });
           setTransfers(transfers);
@@ -30,19 +90,100 @@ const GetUncompletedTransfers = () => {
       }
     }
     fetchTransfers();
-  }, [address]);
+
+    async function fetchEvents() {
+      if (!transfers) {
+        return <div>watching...</div>;
+      }
+      console.log("Uncompleted transfers:", transfers);
+      for (let i = 0; i < transfers.length; i++) {
+        const transfer = transfers[i];
+        const nonce = transfer.nonce.toString();
+        const blockNumber = transfer.blockNumber.toString();
+        const logs = await getContractEvents(config.getClient(), {
+          address: TransferSchedulerContractAddress,
+          abi,
+          eventName: 'TransferScheduled',
+          args: {
+            owner: address,
+          },
+          fromBlock: BigInt(blockNumber),
+          toBlock: BigInt(blockNumber),
+          strict: true
+        })
+        // TODO: handle multiple events
+        if (logs[0].args.nonce.toString() === nonce) {
+          console.log(logs[0].args);
+          setEventLogs(logs[0].args);
+        }
+      }
+    }
+    fetchEvents();
+  }, [address, updateTrigger]);
 
   if (error) {
     return <div>Error: {error.message}</div>;
   }
 
-  return <div>{transfers ? JSON.stringify(transfers.map((bigint) => bigint.toString())) : 'Loading...'}</div>
+  return (
+    <div>
+      {eventLogs ? (
+        <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+          <thead>
+            <tr>
+              {Object.keys(eventLogs).map((key) => (
+                <th key={key} style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>
+                  {key}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Object.values(eventLogs).map((value, index) => (
+              <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
+                {typeof value === 'bigint' ? value.toString() : value.toString()}
+              </td>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        'Loading...'
+      )}
+    </div>
+  );
 };
 
 const GetCompletedTransfers = () => {
+  type queuedTransferRecords = {
+    nonce: BigInt;
+    blockNumber: BigInt;
+  }[];
+
   const { address } = useAccount();
-  const [transfers, setTransfers] = React.useState(null);
+  const [transfers, setTransfers] = React.useState<queuedTransferRecords | null>(null);
+  const [eventLogs, setEventLogs] = React.useState<any | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
+  const [updateTrigger, setUpdateTrigger] = React.useState(0);
+
+  useWatchContractEvent({
+    address: TransferSchedulerContractAddress,
+    abi,
+    eventName: 'TransferScheduled',
+    args: {
+      owner: address
+    },
+    onLogs: () => setUpdateTrigger(prev => prev + 1),
+  });
+
+  useWatchContractEvent({
+    address: TransferSchedulerContractAddress,
+    abi,
+    eventName: 'TransferExecuted',
+    args: {
+      owner: address
+    },
+    onLogs: () => setUpdateTrigger(prev => prev + 1),
+  });
 
   React.useEffect(() => {
     async function fetchTransfers() {
@@ -50,8 +191,8 @@ const GetCompletedTransfers = () => {
         try {
           const transfers = await readContract(config, {
             abi,
-            address: TransferSchedulerContract,
-            functionName: 'getTransfers',
+            address: TransferSchedulerContractAddress,
+            functionName: 'getScheduledTransfers',
             args: [address, true],
           });
           setTransfers(transfers);
@@ -61,13 +202,73 @@ const GetCompletedTransfers = () => {
       }
     }
     fetchTransfers();
-  }, [address]);
+
+    async function fetchEvents() {
+      if (!transfers) {
+        return <div>watching...</div>;
+      }
+      console.log("Completed transfers:", transfers);
+      for (let i = 0; i < transfers.length; i++) {
+        const transfer = transfers[i];
+        const nonce = transfer.nonce.toString();
+        const blockNumber = transfer.blockNumber.toString();
+        const logs = await getContractEvents(config.getClient(), {
+          address: TransferSchedulerContractAddress,
+          abi,
+          eventName: 'TransferScheduled',
+          args: {
+            owner: address,
+          },
+          fromBlock: BigInt(blockNumber),
+          toBlock: BigInt(blockNumber),
+          strict: true
+        })
+        // TODO: handle multiple events
+        if (logs[0].args.nonce.toString() === nonce) {
+          console.log(logs[0].args);
+          setEventLogs(logs[0].args);
+        }
+      }
+    }
+    fetchEvents();
+  }, [address, updateTrigger]);
+
+  // for each transfer, use the blockNumber to get the contract event detail for the nonce
+
 
   if (error) {
     return <div>Error: {error.message}</div>;
   }
 
-  return <div>{transfers ? JSON.stringify(transfers.map((bigint) => bigint.toString())) : 'Loading...'}</div>
+  return (
+    <div>
+      {
+        eventLogs ? (
+          <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+            <thead>
+              <tr>
+                {Object.keys(eventLogs).map((key) => (
+                  <th key={key} style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>
+                    {key}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                {Object.values(eventLogs).map((value, index) => (
+                  <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
+                    {typeof value === 'bigint' ? value.toString() : value.toString()}
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        ) : (
+          'Loading...'
+        )}
+    </div >
+  );
 };
 
 function App() {
@@ -75,15 +276,64 @@ function App() {
   const { connect, connectors, error: connectError, status: isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
   const [eventLogs, setEventLogs] = React.useState<any | null>(null);
+  const [relayGasToken, setRelayGasToken] = React.useState<`0x${string}` | null>(null);
+  const [relayGasTokenName, setRelayGasTokenName] = React.useState<string>('');
+  const [relayGasCommissionPercentage, setRelayGasCommissionPercentage] = useState<number | null>(null);
+  const [error, setError] = React.useState<Error | null>(null);
 
-  function stringifyWithBigInt(obj) {
-    return JSON.stringify(obj, (key, value) =>
-      typeof value === "bigint" ? value.toString() : value
-    );
-  }
+  const fetchRelayGasToken = async () => {
+    try {
+      const token = await readContract(config, {
+        abi,
+        address: TransferSchedulerContractAddress,
+        functionName: 'getGasToken',
+      });
+      setRelayGasToken(token);
+
+      // Fetch token name if we have a valid token address
+      if (token) {
+        const tokenName = await readContract(config, {
+          abi: [{
+            name: 'name',
+            type: 'function',
+            stateMutability: 'view',
+            inputs: [],
+            outputs: [{ type: 'string' }],
+          }],
+          address: token,
+          functionName: 'name',
+        });
+        setRelayGasTokenName(tokenName);
+      }
+    } catch (err) {
+      console.error('Error fetching relay gas token:', err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch relay gas token'));
+    }
+  };
+
+  useEffect(() => {
+    fetchRelayGasToken();
+  }, []); // Empty dependency array means this runs once on mount
+
+  const fetchRelayGasCommissionPercentage = async () => {
+    try {
+      const percentage = await readContract(config, {
+        abi,
+        address: TransferSchedulerContractAddress,
+        functionName: 'getGasCommissionPercentage',
+      });
+      setRelayGasCommissionPercentage(Number(percentage));
+    } catch (err) {
+      console.error('Error fetching relay gas commission percentage:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchRelayGasCommissionPercentage();
+  }, []);
 
   useWatchContractEvent({
-    address: TransferSchedulerContract,
+    address: TransferSchedulerContractAddress,
     abi,
     eventName: 'TransferScheduled',
     args: {
@@ -130,18 +380,43 @@ function App() {
       {accountStatus === 'connected' && (
         <>
           <div>
-            <h3>Authorize Permit2 Contract</h3>
-            <button type="button">Authorize</button>
+            <h3>TransferSchedule Allowance</h3>
+            <div>Gas token: {relayGasToken} ({relayGasTokenName})</div>
+            <GetScheduledTransferContractAllowance relayGasToken={relayGasToken} />
+            <div>Relayer gas fee: block.basefee * gas * {relayGasCommissionPercentage}%</div>
           </div>
 
           <div>
             <h3>Queue Transfer Transaction</h3>
-            <SendTransaction />
+            <QueueTransferTransaction />
           </div>
 
           <div>
-            <h3>Event Logs Topic: TransferScheduled</h3>
-            {stringifyWithBigInt(eventLogs) || 'watching...'}
+            <h3>Event Log Topic: TransferScheduled</h3>
+            {eventLogs ? (
+              <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                <thead>
+                  <tr>
+                    {Object.keys(eventLogs).map((key) => (
+                      <th key={key} style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>
+                        {key}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    {Object.values(eventLogs).map((value, index) => (
+                      <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
+                        {typeof value === 'bigint' ? value.toString() : value.toString()}
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            ) : (
+              'watching...'
+            )}
           </div>
 
           <div>

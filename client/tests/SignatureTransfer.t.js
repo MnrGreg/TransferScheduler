@@ -32,7 +32,7 @@ describe("VaultSignautureTransfer", function () {
                 },
                 spender: vault.address,
                 nonce: 1,
-                deadline: ethers_1.constants.MaxUint256
+                notAfterDate: ethers_1.constants.MaxUint256
             };
             const { domain, types, values } = permit2_sdk_1.SignatureTransfer.getPermitData(permit, permit2_sdk_1.PERMIT2_ADDRESS, 1);
             let signature = await account._signTypedData(domain, types, values);
@@ -54,7 +54,7 @@ describe("VaultSignautureTransfer", function () {
                 },
                 spender: vault.address,
                 nonce: 1,
-                deadline: ethers_1.constants.MaxUint256
+                notAfterDate: ethers_1.constants.MaxUint256
             };
             const { domain, types, values } = permit2_sdk_1.SignatureTransfer.getPermitData(permit, permit2_sdk_1.PERMIT2_ADDRESS, 1);
             let signature = await account._signTypedData(domain, types, values);
@@ -75,7 +75,7 @@ describe("VaultSignautureTransfer", function () {
                 },
                 spender: vault.address,
                 nonce: 1,
-                deadline: ethers_1.constants.MaxUint256
+                notAfterDate: ethers_1.constants.MaxUint256
             };
             const { domain, types, values } = permit2_sdk_1.SignatureTransfer.getPermitData(permit, permit2_sdk_1.PERMIT2_ADDRESS, 1);
             let signature = await acc1._signTypedData(domain, types, values);
@@ -105,7 +105,7 @@ describe("VaultSignautureTransfer", function () {
                 ],
                 spender: vault.address,
                 nonce: 1,
-                deadline: ethers_1.constants.MaxUint256
+                notAfterDate: ethers_1.constants.MaxUint256
             };
             const { domain, types, values } = permit2_sdk_1.SignatureTransfer.getPermitData(permit, permit2_sdk_1.PERMIT2_ADDRESS, 1);
             let signature = await account._signTypedData(domain, types, values);
@@ -139,7 +139,7 @@ describe("VaultSignautureTransfer", function () {
                 ],
                 spender: vault.address,
                 nonce: 1,
-                deadline: ethers_1.constants.MaxUint256
+                notAfterDate: ethers_1.constants.MaxUint256
             };
             const { domain, types, values } = permit2_sdk_1.SignatureTransfer.getPermitData(permit, permit2_sdk_1.PERMIT2_ADDRESS, 1);
             let signature = await account._signTypedData(domain, types, values);
@@ -169,7 +169,7 @@ describe("VaultSignautureTransfer", function () {
                 ],
                 spender: vault.address,
                 nonce: 1,
-                deadline: ethers_1.constants.MaxUint256
+                notAfterDate: ethers_1.constants.MaxUint256
             };
             const { domain, types, values } = permit2_sdk_1.SignatureTransfer.getPermitData(permit, permit2_sdk_1.PERMIT2_ADDRESS, 1);
             let signature = await acc1._signTypedData(domain, types, values);
@@ -190,7 +190,7 @@ describe("VaultSignautureTransfer", function () {
                 },
                 spender: vault.address,
                 nonce: 1,
-                deadline: ethers_1.constants.MaxUint256
+                notAfterDate: ethers_1.constants.MaxUint256
             };
             const { domain, types, values } = permit2_sdk_1.SignatureTransfer.getPermitData(permit, permit2_sdk_1.PERMIT2_ADDRESS, 1);
             let signature = await account._signTypedData(domain, types, values);
@@ -214,7 +214,7 @@ describe("VaultSignautureTransfer", function () {
                 },
                 spender: vault.address,
                 nonce: 1,
-                deadline: ethers_1.constants.MaxUint256
+                notAfterDate: ethers_1.constants.MaxUint256
             };
             const { domain, types, values } = permit2_sdk_1.SignatureTransfer.getPermitData(permit, permit2_sdk_1.PERMIT2_ADDRESS, 1);
             let signature = await acc1._signTypedData(domain, types, values);

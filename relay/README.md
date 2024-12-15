@@ -1,5 +1,5 @@
 
-# Scheduled Transfers Filler
+# Scheduled Transfers Relay
 
 1. Watches for the TransferScheduled event on the TransferScheduler contract
 2. Writes event entries to a queue when received

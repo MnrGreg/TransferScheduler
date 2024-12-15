@@ -1,36 +1,49 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-//import {IPermit2, ISignatureTransfer} from "permit2/src/interfaces/IPermit2.sol";
-import {SignatureTransfer} from "permit2/src/SignatureTransfer.sol";
-//import {Permit2} from "permit2/src/Permit2.sol";
-//import {PermitHash} from "permit2/src/libraries/PermitHash.sol";
+import {IScheduledTransfer} from "./interfaces/IScheduledTransfer.sol";
+
+import {ScheduledTransferHash} from "./libraries/ScheduledTransferHash.sol";
 import {SignatureVerification} from "permit2/src/libraries/SignatureVerification.sol";
+import {
+    TransferTooLate,
+    TransferTooEarly,
+    InsufficientTokenAllowance,
+    InsufficientGasTokenAllowance,
+    MaxBaseFeeExceeded,
+    InvalidNonce
+} from "./TransferErrors.sol";
 
-contract TransferScheduler {
-    SignatureTransfer public immutable PERMIT2;
+import {ERC20} from "solmate/src/tokens/ERC20.sol";
+import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
+import {EIP712} from "openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol";
 
-    constructor(SignatureTransfer _permit) {
-        PERMIT2 = _permit;
-    }
+import {console} from "forge-std/console.sol";
 
-    // Permit2 public immutable PERMIT2;
+contract TransferScheduler is IScheduledTransfer, EIP712 {
+    using SignatureVerification for bytes;
+    using SafeTransferLib for ERC20;
+    using ScheduledTransferHash for ScheduledTransferDetails;
 
-    // constructor(Permit2 _permit) {
-    //     PERMIT2 = _permit;
-    // }
+    constructor() EIP712("TransferScheduler", "1") {}
 
     // * dApps can query the queue for a particular wallet address and show future transfers
-    // * Fillers can query onchain
-    mapping(address => mapping(uint256 => bool)) public transfers;
+    // * relays can query onchain
+    struct addressNonceRecord {
+        uint256 blockNumber;
+        bool completed;
+        bool exists;
+    }
+
+    mapping(address => mapping(uint256 => addressNonceRecord)) public transfers;
     mapping(address => uint256[]) public addressNonceIndices;
+    mapping(address => mapping(uint256 => uint256)) public nonceBitmap;
 
-    //address fillerGasToken = 0x8ce361602B935680E8DeC218b820ff5056BeB7af; // WETH
-    address fillerGasToken = 0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9; // MOCKERC20 Token1
-    uint256 fillerGasCommissionPercentage = 100;
+    address relayGasToken = 0x8ce361602B935680E8DeC218b820ff5056BeB7af; // WETH
+    //address relayGasToken = 0xF62849F9A0B5Bf2913b396098F7c7019b51A820a; // MOCKERC20 Token1
+    uint256 relayGasCommissionPercentage = 100;
 
-    // emit event for fillers to discovery and schedule
+    // emit event for relays to discovery and schedule
     // ToDo: should nonces be indexed?
     event TransferScheduled(
         address indexed owner,
@@ -38,8 +51,8 @@ contract TransferScheduler {
         address token,
         address to,
         uint256 amount,
-        uint256 earliest,
-        uint256 deadline,
+        uint256 notBeforeDate,
+        uint256 notAfterDate,
         uint256 maxBaseFee,
         bytes signature
     );
@@ -50,140 +63,158 @@ contract TransferScheduler {
 
     // * Ability to track the state of the transfer through EVM storage [Optional]
     // ToDo: allow ownerto overwrite with same nonce to replace or nullify
-    function queueTransfer(
+    function queueScheduledTransfer(
         address _wallet,
         uint256 _nonce,
         address _token,
         address _to,
         uint256 _amount,
-        uint256 _earliest,
-        uint256 _deadline,
+        uint256 _notBeforeDate,
+        uint256 _notAfterDate,
         uint256 _maxBaseFee,
         bytes calldata _signature
     ) public {
-        // ToDo: check omit address _wallet from function and determine from signature
+        // transfers[_wallet][_nonce].blockNumber = block.number;
+        // transfers[_wallet][_nonce].completed = false;
+        // transfers[_wallet][_nonce].exists = true;
 
-        transfers[_wallet][_nonce] = false;
+        if (!transfers[_wallet][_nonce].exists) {
+            addressNonceIndices[_wallet].push(_nonce);
+        }
+        transfers[_wallet][_nonce] = addressNonceRecord(block.number, false, true);
         addressNonceIndices[_wallet].push(_nonce);
 
-        emit TransferScheduled(_wallet, _nonce, _token, _to, _amount, _earliest, _deadline, _maxBaseFee, _signature);
+        emit TransferScheduled(
+            _wallet, _nonce, _token, _to, _amount, _notBeforeDate, _notAfterDate, _maxBaseFee, _signature
+        );
+    }
+
+    struct QueuedTransferRecord {
+        uint256 nonce;
+        uint256 blockNumber;
     }
 
     // function to get the transfers of a particular wallet address
-    function getTransfers(address _wallet, bool _completed) public view returns (uint256[] memory) {
-        uint256[] memory nonceList;
-
-        // get all nonces for the wallet
+    function getScheduledTransfers(address _wallet, bool _completed)
+        public
+        view
+        returns (QueuedTransferRecord[] memory)
+    {
+        // Count matching transfers
         uint256 count = 0;
         for (uint256 i = 0; i < addressNonceIndices[_wallet].length; i++) {
-            if (transfers[_wallet][addressNonceIndices[_wallet][i]] == _completed) {
+            if (transfers[_wallet][addressNonceIndices[_wallet][i]].completed == _completed) {
                 count++;
             }
         }
 
-        nonceList = new uint256[](count);
+        // Initialize array with the correct size
+        QueuedTransferRecord[] memory records = new QueuedTransferRecord[](count);
+
+        // Fill array with matching transfers
         uint256 index = 0;
         for (uint256 i = 0; i < addressNonceIndices[_wallet].length; i++) {
-            if (transfers[_wallet][addressNonceIndices[_wallet][i]] == _completed) {
-                nonceList[index] = addressNonceIndices[_wallet][i];
+            uint256 nonce = addressNonceIndices[_wallet][i];
+            if (transfers[_wallet][nonce].completed == _completed) {
+                records[index] =
+                    QueuedTransferRecord({nonce: nonce, blockNumber: transfers[_wallet][nonce].blockNumber});
                 index++;
             }
         }
-        return nonceList;
+
+        return records;
     }
 
     function getGasCommissionPercentage() public view returns (uint256) {
-        return fillerGasCommissionPercentage;
+        return relayGasCommissionPercentage;
     }
 
     function getGasToken() public view returns (address) {
-        return fillerGasToken;
+        return relayGasToken;
     }
 
-    function executeTransfer(
-        address owner,
-        uint256 nonce,
-        address token,
-        address to,
-        uint256 amount,
-        uint256 earliest,
-        uint256 deadline,
-        uint256 maxBaseFee,
+    ///// @inheritdoc IScheduledTransfer
+    function executeScheduledTransfer(
+        ScheduledTransferDetails memory scheduledTransferDetails,
         bytes calldata signature
-    ) public {
-        // ToDo: check difference between public and external
-        // Evaluate witness earliest
-        // Evaluate recipient address
-        // ToDo: can fillters check available funds first?
-        require(deadline >= block.timestamp, "PERMIT_DEADLINE_EXPIRED");
-        require(earliest < block.timestamp, "PERMIT_TRANSFER_TOO_EARLY");
-        require(maxBaseFee > block.basefee, "PERMIT_MAX_BASEFEE_EXCEEDED"); // ToDo: add to witness
+    ) external {
+        _executeScheduledTransfer(scheduledTransferDetails, signature);
+    }
 
-        ISignatureTransfer.TokenPermissions[] memory permitted = new ISignatureTransfer.TokenPermissions[](2);
-        permitted[0] = ISignatureTransfer.TokenPermissions({token: token, amount: amount});
-        permitted[1] = ISignatureTransfer.TokenPermissions({
-            token: fillerGasToken,
-            amount: maxBaseFee * 100000 * (1 + fillerGasCommissionPercentage / 100)
-        });
+    function _executeScheduledTransfer(
+        ScheduledTransferDetails memory scheduledTransferDetails,
+        bytes calldata signature
+    ) private {
+        if (block.timestamp < scheduledTransferDetails.notBeforeDate) {
+            revert TransferTooEarly(scheduledTransferDetails.notBeforeDate);
+        }
 
-        ISignatureTransfer.SignatureTransferDetails[] memory transferDetails =
-            new ISignatureTransfer.SignatureTransferDetails[](2);
-        transferDetails[0] = ISignatureTransfer.SignatureTransferDetails({to: to, requestedAmount: amount});
-        // Refund filler for transaction (100k gas usage) and add commission in gas
-        transferDetails[1] = ISignatureTransfer.SignatureTransferDetails({
-            to: msg.sender,
-            requestedAmount: block.basefee * 100000 * (1 + fillerGasCommissionPercentage / 100)
-        });
+        if (block.timestamp > scheduledTransferDetails.notAfterDate) {
+            revert TransferTooLate(scheduledTransferDetails.notAfterDate);
+        }
 
-        // bytes32 hashed =
-        //     hash(ISignatureTransfer.PermitBatchTransferFrom({permitted: permitted, nonce: nonce, deadline: deadline}));
-        // SignatureVerification.verify(signature, hashed, owner);
+        if (block.basefee > scheduledTransferDetails.maxBaseFee) {
+            revert MaxBaseFeeExceeded(block.basefee, scheduledTransferDetails.maxBaseFee);
+        }
 
-        PERMIT2.permitTransferFrom(
-            ISignatureTransfer.PermitBatchTransferFrom({permitted: permitted, nonce: nonce, deadline: deadline}),
-            transferDetails,
-            owner,
-            // bytes32 witness,
-            // string calldata witnessTypeString,
-            signature
-        );
+        uint256 spenderTokenAllowance =
+            ERC20(scheduledTransferDetails.token).allowance(scheduledTransferDetails.owner, address(this));
+        if (scheduledTransferDetails.amount > spenderTokenAllowance) {
+            revert InsufficientTokenAllowance(spenderTokenAllowance);
+        }
 
-        // If transfersByUser[owner] exists then set .completed status to true
-        if (transfers[owner][nonce] == false) {
-            transfers[owner][nonce] = true;
-            emit TransferExecuted(owner, nonce); // ToDo: consider removing in place of fillers checking state - lots of historical transfers may add overhead
+        uint256 spenderGasTokenAllowance = ERC20(relayGasToken).allowance(scheduledTransferDetails.owner, address(this));
+        if (block.basefee * 100000 * (1 + relayGasCommissionPercentage / 100) > spenderGasTokenAllowance) {
+            revert InsufficientGasTokenAllowance(spenderGasTokenAllowance);
+        }
+
+        _useUnorderedNonce(scheduledTransferDetails.owner, scheduledTransferDetails.nonce);
+
+        bytes32 hashed = _hashTypedDataV4(scheduledTransferDetails.hash());
+
+        SignatureVerification.verify(signature, hashed, scheduledTransferDetails.owner);
+
+        unchecked {
+            if (scheduledTransferDetails.amount != 0) {
+                // allow spender to specify which of the permitted tokens should be transferred
+                ERC20(scheduledTransferDetails.token).safeTransferFrom(
+                    scheduledTransferDetails.owner, scheduledTransferDetails.to, scheduledTransferDetails.amount
+                );
+                // Refund relay for transaction (100k gas usage) and add commission in gas
+                ERC20(relayGasToken).safeTransferFrom(
+                    scheduledTransferDetails.owner,
+                    msg.sender,
+                    block.basefee * 100000 * (1 + relayGasCommissionPercentage / 100)
+                );
+            }
+        }
+
+        // TODO: adds 30k Gas,consider removing in place of relays checking state - lots of historical transfers may add overhead
+        if (transfers[scheduledTransferDetails.owner][scheduledTransferDetails.nonce].completed == false) {
+            transfers[scheduledTransferDetails.owner][scheduledTransferDetails.nonce].completed = true;
+            emit TransferExecuted(scheduledTransferDetails.owner, scheduledTransferDetails.nonce);
         }
     }
 
-    // function hash(ISignatureTransfer.PermitBatchTransferFrom memory permit) internal view returns (bytes32) {
-    //     uint256 numPermitted = permit.permitted.length;
-    //     bytes32 _PERMIT_BATCH_TRANSFER_FROM_TYPEHASH = keccak256(
-    //         "PermitBatchTransferFrom(TokenPermissions[] permitted,address spender,uint256 nonce,uint256 deadline)TokenPermissions(address token,uint256 amount)"
-    //     );
-    //     bytes32[] memory tokenPermissionHashes = new bytes32[](numPermitted);
+    /// @notice Checks whether a nonce is taken and sets the bit at the bit position in the bitmap at the word position
+    /// @param from The address to use the nonce at
+    /// @param nonce The nonce to spend
+    function _useUnorderedNonce(address from, uint256 nonce) internal {
+        (uint256 wordPos, uint256 bitPos) = bitmapPositions(nonce);
+        uint256 bit = 1 << bitPos;
+        uint256 flipped = nonceBitmap[from][wordPos] ^= bit;
 
-    //     for (uint256 i = 0; i < numPermitted; ++i) {
-    //         tokenPermissionHashes[i] = _hashTokenPermissions(permit.permitted[i]);
-    //     }
+        if (flipped & bit == 0) revert InvalidNonce();
+    }
 
-    //     return keccak256(
-    //         abi.encode(
-    //             _PERMIT_BATCH_TRANSFER_FROM_TYPEHASH,
-    //             keccak256(abi.encodePacked(tokenPermissionHashes)),
-    //             address(this),
-    //             permit.nonce,
-    //             permit.deadline
-    //         )
-    //     );
-    // }
-
-    // function _hashTokenPermissions(ISignatureTransfer.TokenPermissions memory permitted)
-    //     private
-    //     pure
-    //     returns (bytes32)
-    // {
-    //     bytes32 _TOKEN_PERMISSIONS_TYPEHASH = keccak256("TokenPermissions(address token,uint256 amount)");
-
-    //     return keccak256(abi.encode(_TOKEN_PERMISSIONS_TYPEHASH, permitted));
-    // }
+    /// @notice Returns the index of the bitmap and the bit position within the bitmap. Used for unordered nonces
+    /// @param nonce The nonce to get the associated word and bit positions
+    /// @return wordPos The word position or index into the nonceBitmap
+    /// @return bitPos The bit position
+    /// @dev The first 248 bits of the nonce value is the index of the desired bitmap
+    /// @dev The last 8 bits of the nonce value is the position of the bit in the bitmap
+    function bitmapPositions(uint256 nonce) private pure returns (uint256 wordPos, uint256 bitPos) {
+        wordPos = uint248(nonce >> 8);
+        bitPos = uint8(nonce);
+    }
 }
