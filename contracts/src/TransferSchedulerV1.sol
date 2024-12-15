@@ -16,9 +16,8 @@ import {
 
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
-import {EIP712} from "openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol";
-
-import {console} from "forge-std/console.sol";
+import {EIP712} from "contracts/lib/openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol";
+//import {EIP712Upgradeable} from "@openzeppelin/contracts/utils/cryptography/EIP712Upgradeable.sol";
 
 contract TransferScheduler is IScheduledTransfer, EIP712 {
     using SignatureVerification for bytes;
@@ -26,6 +25,7 @@ contract TransferScheduler is IScheduledTransfer, EIP712 {
     using ScheduledTransferHash for ScheduledTransferDetails;
 
     constructor() EIP712("TransferScheduler", "1") {}
+    //constructor() EIP712Upgradeable("TransferScheduler", "1") {}
 
     // * dApps can query the queue for a particular wallet address and show future transfers
     // * relays can query onchain
@@ -39,8 +39,7 @@ contract TransferScheduler is IScheduledTransfer, EIP712 {
     mapping(address => uint256[]) public addressNonceIndices;
     mapping(address => mapping(uint256 => uint256)) public nonceBitmap;
 
-    address relayGasToken = 0x8ce361602B935680E8DeC218b820ff5056BeB7af; // WETH
-    //address relayGasToken = 0xF62849F9A0B5Bf2913b396098F7c7019b51A820a; // MOCKERC20 Token1
+    address relayGasToken = 0x4200000000000000000000000000000000000006; // Base WETH Token
     uint256 relayGasCommissionPercentage = 100;
 
     // emit event for relays to discovery and schedule

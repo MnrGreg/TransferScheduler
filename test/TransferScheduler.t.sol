@@ -5,9 +5,9 @@ import {Test, StdStyle} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
 
 import {IScheduledTransfer} from "contracts/src/interfaces/IScheduledTransfer.sol";
-import {TokenProvider} from "./utils/TokenProvider.sol";
-
-import {TransferScheduler} from "contracts/src/TransferScheduler.sol";
+import {IERC20} from "forge-std/interfaces/IERC20.sol";
+import {MockERC20} from "./mocks/MockERC20.sol";
+import {TransferScheduler} from "contracts/src/TransferSchedulerV1.sol";
 import {
     TransferTooLate,
     TransferTooEarly,
@@ -17,7 +17,7 @@ import {
     InvalidNonce
 } from "contracts/src/TransferErrors.sol";
 
-contract TransferSchedulerTest is Test, TokenProvider {
+contract TransferSchedulerTest is Test {
     //event UnorderedNonceInvalidation(address indexed owner, uint256 word, uint256 mask);
     //event Transfer(address indexed from, address indexed token, address indexed to, uint256 amount);
     event TransferScheduled(
@@ -45,6 +45,8 @@ contract TransferSchedulerTest is Test, TokenProvider {
     address relayAddress = vm.addr(relayPrivateKey);
     uint256 amount = 5 ** 18;
     uint256 relayGasCommissionPercentage;
+    MockERC20 token0;
+    IERC20 public gasToken;
 
     //uint256 notBeforeDate = 1704088622; // 01/01/2024
     uint256 notBeforeDate = 0;
@@ -57,9 +59,9 @@ contract TransferSchedulerTest is Test, TokenProvider {
         // set basefee
         vm.fee(800000);
 
-        //signatureTransfer = new SignatureTransfer();
         transferScheduler = new TransferScheduler();
         relayGasCommissionPercentage = transferScheduler.getGasCommissionPercentage();
+        address gasTokenAddress = transferScheduler.getGasToken();
         // Get domain data
         (
             bytes1 fields,
@@ -82,9 +84,18 @@ contract TransferSchedulerTest is Test, TokenProvider {
             )
         );
 
-        initializeERC20Tokens();
-        setERC20TestTokens(owner);
-        setERC20TestTokenApprovals(vm, owner, address(transferScheduler));
+        // Deal and approve exissting gasToken (WETH) for owner and spender
+        gasToken = IERC20(gasTokenAddress);
+        deal(address(gasToken), owner, 100 ** 18, false);
+        vm.startPrank(owner);
+        gasToken.approve(address(transferScheduler), type(uint256).max);
+        vm.stopPrank();
+
+        token0 = new MockERC20("Token0", "TOKEN0", 18);
+        token0.mint(owner, 30 ** 18);
+        vm.startPrank(owner);
+        token0.approve(address(transferScheduler), type(uint256).max);
+        vm.stopPrank();
 
         scheduledTransferDetails.owner = owner;
         scheduledTransferDetails.nonce = nonce;
@@ -122,32 +133,32 @@ contract TransferSchedulerTest is Test, TokenProvider {
 
     function testExecuteScheduledTransfer() public {
         uint256 startBalanceFrom0 = token0.balanceOf(owner);
-        uint256 startBalanceFrom1 = token1.balanceOf(owner);
+        uint256 startBalanceFrom1 = gasToken.balanceOf(owner);
         uint256 startBalanceTo0 = token0.balanceOf(recipientAddress);
-        uint256 startBalanceTo1 = token1.balanceOf(relayAddress);
+        uint256 startBalanceTo1 = gasToken.balanceOf(relayAddress);
 
         vm.startPrank(relayAddress);
         transferScheduler.executeScheduledTransfer(scheduledTransferDetails, signature);
         vm.stopPrank();
 
         assertEq(token0.balanceOf(owner), startBalanceFrom0 - amount);
-        console.log("owner token1 balance: less", block.basefee * 100000 * (1 + relayGasCommissionPercentage / 100));
+        console.log("owner gasToken balance: less", block.basefee * 100000 * (1 + relayGasCommissionPercentage / 100));
         assertEq(
-            token1.balanceOf(owner),
+            gasToken.balanceOf(owner),
             startBalanceFrom1 - block.basefee * 100000 * (1 + relayGasCommissionPercentage / 100)
         );
         assertEq(token0.balanceOf(recipientAddress), startBalanceTo0 + amount);
         assertEq(
-            token1.balanceOf(relayAddress),
+            gasToken.balanceOf(relayAddress),
             startBalanceTo1 + block.basefee * 100000 * (1 + relayGasCommissionPercentage / 100)
         );
     }
 
     function testExecuteTransferInvalidNonce() public {
         // uint256 startBalanceFrom0 = token0.balanceOf(owner);
-        // uint256 startBalanceFrom1 = token1.balanceOf(owner);
+        // uint256 startBalanceFrom1 = gasToken.balanceOf(owner);
         // uint256 startBalanceTo0 = token0.balanceOf(recipientAddress);
-        // uint256 startBalanceTo1 = token1.balanceOf(relayAddress);
+        // uint256 startBalanceTo1 = gasToken.balanceOf(relayAddress);
 
         vm.startPrank(relayAddress);
         transferScheduler.executeScheduledTransfer(scheduledTransferDetails, signature);

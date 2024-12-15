@@ -1,7 +1,8 @@
 ds-test/=contracts/lib/solmate/lib/ds-test/src/
 forge-gas-snapshot/=contracts/lib/forge-gas-snapshot/src/
 forge-std/=contracts/lib/forge-std/src/
-openzeppelin-contracts/=contracts/lib/openzeppelin-contracts/
-@openzeppelin/=contracts/lib/openzeppelin-contracts/
 solmate/=contracts/lib/solmate/
 permit2/=contracts/lib/permit2/
+@openzeppelin/contracts/=contracts/lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/
+@openzeppelin/contracts-upgradeable/=contracts/lib/openzeppelin-contracts-upgradeable/contracts/
+openzeppelin-foundry-upgrades/=contracts/lib/openzeppelin-foundry-upgrades/src/
