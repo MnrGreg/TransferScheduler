@@ -7,7 +7,8 @@ import {console} from "forge-std/console.sol";
 import {IScheduledTransfer} from "contracts/src/interfaces/IScheduledTransfer.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
-import {TransferScheduler} from "contracts/src/TransferSchedulerV1.sol";
+import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import {TransferSchedulerV1} from "contracts/src/TransferSchedulerV1.sol";
 import {
     TransferTooLate,
     TransferTooEarly,
@@ -18,21 +19,19 @@ import {
 } from "contracts/src/TransferErrors.sol";
 
 contract TransferSchedulerTest is Test {
-    //event UnorderedNonceInvalidation(address indexed owner, uint256 word, uint256 mask);
-    //event Transfer(address indexed from, address indexed token, address indexed to, uint256 amount);
     event TransferScheduled(
         address indexed owner,
-        uint256 nonce,
+        uint96 nonce,
         address token,
         address to,
-        uint256 amount,
-        uint256 notBeforeDate,
-        uint256 notAfterDate,
-        uint256 maxBaseFee,
+        uint128 amount,
+        uint40 notBeforeDate,
+        uint40 notAfterDate,
+        uint40 maxBaseFee,
         bytes signature
     );
 
-    TransferScheduler transferScheduler;
+    TransferSchedulerV1 transferScheduler;
     IScheduledTransfer.ScheduledTransferDetails scheduledTransferDetails;
 
     bytes32 DOMAIN_SEPARATOR;
@@ -43,23 +42,29 @@ contract TransferSchedulerTest is Test {
     address recipientAddress = vm.addr(recipientAddressKey);
     uint256 relayPrivateKey = 0x98769876;
     address relayAddress = vm.addr(relayPrivateKey);
-    uint256 amount = 5 ** 18;
-    uint256 relayGasCommissionPercentage;
+    uint128 amount = 5 ** 18;
+    uint8 relayGasCommissionPercentage;
     MockERC20 token0;
     IERC20 public gasToken;
 
     //uint256 notBeforeDate = 1704088622; // 01/01/2024
-    uint256 notBeforeDate = 0;
-    uint256 notAfterDate = 1767247022; // 01/01/2026
-    uint256 maxBaseFee = 2000000; // 0.2 wei
-    uint256 nonce = 23143254;
+    uint40 notBeforeDate = 0;
+    uint40 notAfterDate = 1767247022; // 01/01/2026
+    uint40 maxBaseFee = 2000000; // 0.2 wei
+    uint96 nonce = 23143254;
     bytes signature;
 
     function setUp() public {
         // set basefee
         vm.fee(800000);
 
-        transferScheduler = new TransferScheduler();
+        address proxy = Upgrades.deployUUPSProxy(
+            "TransferSchedulerV1.sol",
+            abi.encodeCall(TransferSchedulerV1.initialize, (address(0x4200000000000000000000000000000000000006), 100))
+        );
+
+        transferScheduler = TransferSchedulerV1(proxy);
+
         relayGasCommissionPercentage = transferScheduler.getGasCommissionPercentage();
         address gasTokenAddress = transferScheduler.getGasToken();
         // Get domain data
@@ -70,7 +75,6 @@ contract TransferSchedulerTest is Test {
             uint256 chainId,
             address verifyingContract,
             bytes32 salt,
-            // uint256[] memory extensions
         ) = transferScheduler.eip712Domain();
 
         // Create domain separator
@@ -84,7 +88,7 @@ contract TransferSchedulerTest is Test {
             )
         );
 
-        // Deal and approve exissting gasToken (WETH) for owner and spender
+        // Deal and approve existing gasToken (WETH) for owner and spender on mainnet.base.org fork
         gasToken = IERC20(gasTokenAddress);
         deal(address(gasToken), owner, 100 ** 18, false);
         vm.startPrank(owner);
@@ -102,9 +106,9 @@ contract TransferSchedulerTest is Test {
         scheduledTransferDetails.token = address(token0);
         scheduledTransferDetails.to = recipientAddress;
         scheduledTransferDetails.amount = amount;
-        scheduledTransferDetails.maxBaseFee = maxBaseFee;
         scheduledTransferDetails.notBeforeDate = notBeforeDate;
         scheduledTransferDetails.notAfterDate = notAfterDate;
+        scheduledTransferDetails.maxBaseFee = maxBaseFee;
 
         // Sign EIP712 off-chain message with private key
         signature = getScheduledTransferSignature(scheduledTransferDetails, ownerPrivateKey, DOMAIN_SEPARATOR);
@@ -127,7 +131,8 @@ contract TransferSchedulerTest is Test {
             owner, nonce, address(token0), recipientAddress, amount, notBeforeDate, notAfterDate, maxBaseFee, signature
         );
 
-        TransferScheduler.QueuedTransferRecord[] memory records = transferScheduler.getScheduledTransfers(owner, false);
+        TransferSchedulerV1.QueuedTransferRecord[] memory records =
+            transferScheduler.getScheduledTransfers(owner, false);
         assertEq(nonce, records[0].nonce);
     }
 
@@ -176,7 +181,7 @@ contract TransferSchedulerTest is Test {
         bytes32 domainSeparator
     ) internal view returns (bytes memory sig) {
         bytes32 _SCHEDULED_TRANSFER_TYPEHASH = keccak256(
-            "ScheduledTransfer(address owner,uint256 nonce,address token,address to,uint256 amount,address spender,uint256 maxBaseFee,uint256 notBeforeDate,uint256 notAfterDate)"
+            "ScheduledTransfer(address owner,uint96 nonce,address token,address to,uint128 amount,address spender,uint40 notBeforeDate,uint40 notAfterDate,uint40 maxBaseFee)"
         );
 
         bytes32 msgHash = keccak256(
@@ -192,9 +197,9 @@ contract TransferSchedulerTest is Test {
                         transferDetail.to,
                         transferDetail.amount,
                         address(transferScheduler),
-                        transferDetail.maxBaseFee,
                         transferDetail.notBeforeDate,
-                        transferDetail.notAfterDate
+                        transferDetail.notAfterDate,
+                        transferDetail.maxBaseFee
                     )
                 )
             )

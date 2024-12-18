@@ -16,61 +16,72 @@ import {
 
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
-import {EIP712} from "contracts/lib/openzeppelin-contracts/contracts/utils/cryptography/EIP712.sol";
-//import {EIP712Upgradeable} from "@openzeppelin/contracts/utils/cryptography/EIP712Upgradeable.sol";
+import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract TransferScheduler is IScheduledTransfer, EIP712 {
+contract TransferSchedulerV1 is IScheduledTransfer, EIP712Upgradeable, UUPSUpgradeable, OwnableUpgradeable {
     using SignatureVerification for bytes;
     using SafeTransferLib for ERC20;
     using ScheduledTransferHash for ScheduledTransferDetails;
 
-    constructor() EIP712("TransferScheduler", "1") {}
-    //constructor() EIP712Upgradeable("TransferScheduler", "1") {}
+    address relayGasToken;
+    uint8 relayGasCommissionPercentage;
+
+    // The initialize function will be used to set up the initial state of the contract.
+    function initialize(address _relayGasToken, uint8 _relayGasCommissionPercentage) public initializer {
+        __Ownable_init(msg.sender);
+        __UUPSUpgradeable_init();
+        __EIP712_init("TransferSchedulerV1", "1");
+        relayGasToken = _relayGasToken;
+        relayGasCommissionPercentage = _relayGasCommissionPercentage;
+    }
+
+    // ! TODO: add authorization!!!
+    function _authorizeUpgrade(address _newImplementation) internal override onlyOwner {}
 
     // * dApps can query the queue for a particular wallet address and show future transfers
     // * relays can query onchain
     struct addressNonceRecord {
-        uint256 blockNumber;
+        uint40 blockNumber;
         bool completed;
         bool exists;
     }
 
-    mapping(address => mapping(uint256 => addressNonceRecord)) public transfers;
-    mapping(address => uint256[]) public addressNonceIndices;
+    mapping(address => mapping(uint96 => addressNonceRecord)) public transfers;
+    mapping(address => uint96[]) public addressNonceIndices;
     mapping(address => mapping(uint256 => uint256)) public nonceBitmap;
-
-    address relayGasToken = 0x4200000000000000000000000000000000000006; // Base WETH Token
-    uint256 relayGasCommissionPercentage = 100;
 
     // emit event for relays to discovery and schedule
     // ToDo: should nonces be indexed?
     event TransferScheduled(
         address indexed owner,
-        uint256 nonce,
+        uint96 nonce,
         address token,
         address to,
-        uint256 amount,
-        uint256 notBeforeDate,
-        uint256 notAfterDate,
-        uint256 maxBaseFee,
+        uint128 amount,
+        uint40 notBeforeDate,
+        uint40 notAfterDate,
+        uint40 maxBaseFee,
         bytes signature
     );
 
     // emit event for after succesful execution
     // ToDo: should nonces be indexed?
-    event TransferExecuted(address indexed owner, uint256 nonce);
+    event TransferExecuted(address indexed owner, uint96 nonce);
 
     // * Ability to track the state of the transfer through EVM storage [Optional]
     // ToDo: allow ownerto overwrite with same nonce to replace or nullify
     function queueScheduledTransfer(
         address _wallet,
-        uint256 _nonce,
+        uint96 _nonce,
         address _token,
         address _to,
-        uint256 _amount,
-        uint256 _notBeforeDate,
-        uint256 _notAfterDate,
-        uint256 _maxBaseFee,
+        uint128 _amount,
+        uint40 _notBeforeDate,
+        uint40 _notAfterDate,
+        uint40 _maxBaseFee,
         bytes calldata _signature
     ) public {
         // transfers[_wallet][_nonce].blockNumber = block.number;
@@ -80,7 +91,7 @@ contract TransferScheduler is IScheduledTransfer, EIP712 {
         if (!transfers[_wallet][_nonce].exists) {
             addressNonceIndices[_wallet].push(_nonce);
         }
-        transfers[_wallet][_nonce] = addressNonceRecord(block.number, false, true);
+        transfers[_wallet][_nonce] = addressNonceRecord(uint40(block.number), false, true);
         addressNonceIndices[_wallet].push(_nonce);
 
         emit TransferScheduled(
@@ -89,8 +100,8 @@ contract TransferScheduler is IScheduledTransfer, EIP712 {
     }
 
     struct QueuedTransferRecord {
-        uint256 nonce;
-        uint256 blockNumber;
+        uint96 nonce;
+        uint40 blockNumber;
     }
 
     // function to get the transfers of a particular wallet address
@@ -113,7 +124,7 @@ contract TransferScheduler is IScheduledTransfer, EIP712 {
         // Fill array with matching transfers
         uint256 index = 0;
         for (uint256 i = 0; i < addressNonceIndices[_wallet].length; i++) {
-            uint256 nonce = addressNonceIndices[_wallet][i];
+            uint96 nonce = addressNonceIndices[_wallet][i];
             if (transfers[_wallet][nonce].completed == _completed) {
                 records[index] =
                     QueuedTransferRecord({nonce: nonce, blockNumber: transfers[_wallet][nonce].blockNumber});
@@ -124,7 +135,7 @@ contract TransferScheduler is IScheduledTransfer, EIP712 {
         return records;
     }
 
-    function getGasCommissionPercentage() public view returns (uint256) {
+    function getGasCommissionPercentage() public view returns (uint8) {
         return relayGasCommissionPercentage;
     }
 
@@ -189,7 +200,8 @@ contract TransferScheduler is IScheduledTransfer, EIP712 {
         }
 
         // TODO: adds 30k Gas,consider removing in place of relays checking state - lots of historical transfers may add overhead
-        if (transfers[scheduledTransferDetails.owner][scheduledTransferDetails.nonce].completed == false) {
+        // If ScheduledTransefer was queued on-chain, update on-chain state to .completed=true and emit event
+        if (transfers[scheduledTransferDetails.owner][scheduledTransferDetails.nonce].exists == true) {
             transfers[scheduledTransferDetails.owner][scheduledTransferDetails.nonce].completed = true;
             emit TransferExecuted(scheduledTransferDetails.owner, scheduledTransferDetails.nonce);
         }

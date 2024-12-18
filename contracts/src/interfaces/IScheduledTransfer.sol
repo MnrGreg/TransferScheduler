@@ -21,18 +21,18 @@ interface IScheduledTransfer {
     struct ScheduledTransferDetails {
         address owner;
         // a unique value for every token owner's signature to prevent signature replays
-        uint256 nonce;
+        uint96 nonce;
         address token;
         // recipient address
         address to;
         // the exact amount that must be spent
-        uint256 amount;
+        uint128 amount;
         address spender;
-        uint256 maxBaseFee;
         // notAfterDate on the permit signature
-        uint256 notBeforeDate;
+        uint40 notBeforeDate;
         // notAfterDate on the permit signature
-        uint256 notAfterDate;
+        uint40 notAfterDate;
+        uint40 maxBaseFee;
     }
 
     /// @notice A map from token owner address and a caller specified word index to a bitmap. Used to set bits in the bitmap to prevent against signature replay protection

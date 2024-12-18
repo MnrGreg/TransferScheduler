@@ -131,19 +131,32 @@ const GetUncompletedTransfers = () => {
         <table style={{ borderCollapse: 'collapse', width: '100%' }}>
           <thead>
             <tr>
-              {Object.keys(eventLogs).map((key) => (
-                <th key={key} style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>
-                  {key}
-                </th>
-              ))}
+              {Object.keys(eventLogs)
+                .filter(key => key !== 'owner' && key !== 'signature')
+                .map((key) => (
+                  <th key={key} style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>
+                    {key}
+                  </th>
+                ))}
             </tr>
           </thead>
           <tbody>
-            {Object.values(eventLogs).map((value, index) => (
-              <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
-                {typeof value === 'bigint' ? value.toString() : value.toString()}
-              </td>
-            ))}
+            {Object.entries(eventLogs)
+              .filter(([key]) => key !== 'owner' && key !== 'signature')
+              .map(([key, value], index) => (
+                <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
+                  {key === 'notBeforeDate' || key === 'notAfterDate'
+                    ? new Date(Number(value) * 1000).toLocaleString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      timeZoneName: 'short'
+                    })
+                    : typeof value === 'bigint' ? value.toString() : value.toString()}
+                </td>
+              ))}
           </tbody>
         </table>
       ) : (
@@ -247,20 +260,33 @@ const GetCompletedTransfers = () => {
           <table style={{ borderCollapse: 'collapse', width: '100%' }}>
             <thead>
               <tr>
-                {Object.keys(eventLogs).map((key) => (
-                  <th key={key} style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>
-                    {key}
-                  </th>
-                ))}
+                {Object.keys(eventLogs)
+                  .filter(key => key !== 'owner' && key !== 'signature')
+                  .map((key) => (
+                    <th key={key} style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>
+                      {key}
+                    </th>
+                  ))}
               </tr>
             </thead>
             <tbody>
               <tr>
-                {Object.values(eventLogs).map((value, index) => (
-                  <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
-                    {typeof value === 'bigint' ? value.toString() : value.toString()}
-                  </td>
-                ))}
+                {Object.entries(eventLogs)
+                  .filter(([key]) => key !== 'owner' && key !== 'signature')
+                  .map(([key, value], index) => (
+                    <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
+                      {key === 'notBeforeDate' || key === 'notAfterDate'
+                        ? new Date(Number(value) * 1000).toLocaleString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          timeZoneName: 'short'
+                        })
+                        : typeof value === 'bigint' ? value.toString() : value.toString()}
+                    </td>
+                  ))}
               </tr>
             </tbody>
           </table>
@@ -397,20 +423,33 @@ function App() {
               <table style={{ borderCollapse: 'collapse', width: '100%' }}>
                 <thead>
                   <tr>
-                    {Object.keys(eventLogs).map((key) => (
-                      <th key={key} style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>
-                        {key}
-                      </th>
-                    ))}
+                    {Object.keys(eventLogs)
+                      .filter(key => key !== 'owner' && key !== 'signature')
+                      .map((key) => (
+                        <th key={key} style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>
+                          {key}
+                        </th>
+                      ))}
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    {Object.values(eventLogs).map((value, index) => (
-                      <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
-                        {typeof value === 'bigint' ? value.toString() : value.toString()}
-                      </td>
-                    ))}
+                    {Object.entries(eventLogs)
+                      .filter(([key]) => key !== 'owner' && key !== 'signature')
+                      .map(([key, value], index) => (
+                        <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
+                          {key === 'notBeforeDate' || key === 'notAfterDate'
+                            ? new Date(Number(value) * 1000).toLocaleString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              timeZoneName: 'short'
+                            })
+                            : typeof value === 'bigint' ? value.toString() : value.toString()}
+                        </td>
+                      ))}
                   </tr>
                 </tbody>
               </table>

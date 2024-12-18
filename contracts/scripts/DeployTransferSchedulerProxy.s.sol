@@ -13,7 +13,8 @@ contract DeployScript is Script {
 
         // Deploy the upgradeable contract
         address proxy = Upgrades.deployUUPSProxy(
-            "TransferSchedulerV1.sol", abi.encodeCall(TransferScheduler.initialize, (msg.sender))
+            "TransferSchedulerV1.sol",
+            abi.encodeCall(TransferSchedulerV1.initialize, (address(0x4200000000000000000000000000000000000006), 100))
         );
 
         // Get the implementation address

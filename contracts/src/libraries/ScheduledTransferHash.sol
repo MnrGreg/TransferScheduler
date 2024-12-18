@@ -5,7 +5,7 @@ import {IScheduledTransfer} from "../interfaces/IScheduledTransfer.sol";
 
 library ScheduledTransferHash {
     bytes32 public constant _SCHEDULED_TRANSFER_TYPEHASH = keccak256(
-        "ScheduledTransfer(address owner,uint256 nonce,address token,address to,uint256 amount,address spender,uint256 maxBaseFee,uint256 notBeforeDate,uint256 notAfterDate)"
+        "ScheduledTransfer(address owner,uint96 nonce,address token,address to,uint128 amount,address spender,uint40 notBeforeDate,uint40 notAfterDate,uint40 maxBaseFee)"
     );
 
     function hash(IScheduledTransfer.ScheduledTransferDetails memory scheduledTransferDetails)
@@ -22,9 +22,9 @@ library ScheduledTransferHash {
                 scheduledTransferDetails.to,
                 scheduledTransferDetails.amount,
                 address(this),
-                scheduledTransferDetails.maxBaseFee,
                 scheduledTransferDetails.notBeforeDate,
-                scheduledTransferDetails.notAfterDate
+                scheduledTransferDetails.notAfterDate,
+                scheduledTransferDetails.maxBaseFee
             )
         );
     }

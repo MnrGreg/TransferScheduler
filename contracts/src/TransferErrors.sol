@@ -5,14 +5,14 @@ pragma solidity ^0.8.17;
 
 /// @notice Thrown when validating an inputted signature that is stale
 /// @param notAfterDate The timestamp at which a signature is no longer valid
-error TransferTooLate(uint256 notAfterDate);
+error TransferTooLate(uint40 notAfterDate);
 
 /// @notice Thrown when validating that the inputted nonce has not been used
 error InvalidNonce();
 
-error TransferTooEarly(uint256 notBeforeDate);
+error TransferTooEarly(uint40 notBeforeDate);
 
-error MaxBaseFeeExceeded(uint256 baseFee, uint256 maxBaseFee);
+error MaxBaseFeeExceeded(uint256 baseFee, uint40 maxBaseFee);
 
 error InsufficientTokenAllowance(uint256 spenderTokenAllowance);
 

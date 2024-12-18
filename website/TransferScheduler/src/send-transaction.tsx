@@ -66,14 +66,14 @@ export function QueueTransferTransaction() {
         });
 
         if (tokenAllowance < amount) {
-            setError(new Error('Insufficient token allowance'));
+            setError(new Error(`Insufficient token allowance for spender: ${TransferSchedulerContractAddress}`));
             return;
         }
         // TODO: link to token allowance increase button
         try {
             const signature = await signTypedData(config, {
                 domain: {
-                    name: 'TransferScheduler',
+                    name: 'TransferSchedulerV1',
                     version: '1',
                     chainId: BigInt(chainId),
                     verifyingContract: TransferSchedulerContractAddress,
@@ -87,12 +87,12 @@ export function QueueTransferTransaction() {
                     to: to,
                     amount: amount,
                     spender: TransferSchedulerContractAddress,
-                    maxBaseFee: maxBaseFee,
                     notBeforeDate: notBeforeDate,
-                    notAfterDate: notAfterDate
+                    notAfterDate: notAfterDate,
+                    maxBaseFee: maxBaseFee,
                 },
             });
-            console.log('Signature:', signature);
+            //console.log('Signature:', signature);
 
             setIsPending(true);
 

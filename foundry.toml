@@ -6,3 +6,7 @@ libs = ["contracts/lib"]
 bytecode_hash = "none"
 optimizer = true
 via_ir = true
+ffi = true
+ast = true
+build_info = true
+extra_output = ["storageLayout"]

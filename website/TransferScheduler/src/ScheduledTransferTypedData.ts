@@ -9,13 +9,13 @@ export const types = {
     ],
     ScheduledTransfer: [
         { name: 'owner', type: 'address' },
-        { name: 'nonce', type: 'uint256' },
+        { name: 'nonce', type: 'uint96' },
         { name: 'token', type: 'address' },
         { name: 'to', type: 'address' },
-        { name: 'amount', type: 'uint256' },
+        { name: 'amount', type: 'uint128' },
         { name: 'spender', type: 'address' },
-        { name: 'maxBaseFee', type: 'uint256' },
-        { name: 'notBeforeDate', type: 'uint256' },
-        { name: 'notAfterDate', type: 'uint256' },
+        { name: 'notBeforeDate', type: 'uint40' },
+        { name: 'notAfterDate', type: 'uint40' },
+        { name: 'maxBaseFee', type: 'uint40' },
     ],
 } as const satisfies TypedData
