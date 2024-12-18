@@ -33,13 +33,10 @@ async function main() {
         }
         // TODO: Move to Temporal
         // TODO: call contract to check if [address][nonce].completed isn't already true (if replaying old events)
-        // TODO: eth_call to check result prior to broadcast
-        // TODO: check address balances before sending (avoid revert)
-        // TODO: check signature/owner
-        // TODO: check maxBaseFee
+
         let currentTime = Math.floor(new Date().getTime() / 1000);
         if (currentTime < Number(notAfterDate)) {
-            while (currentTime <= Number(notBeforeDate)) {
+            while (currentTime < Number(notBeforeDate)) {
                 await new Promise(resolve => setTimeout(resolve, 10000));
                 currentTime = Math.floor(new Date().getTime() / 1000);
                 console.log("Queued Transfer too early. Current Time:", currentTime, "NotBeforeDate:", notBeforeDate, "Nonce:", nonce, "waiting 10seconds...");
@@ -54,7 +51,7 @@ async function main() {
                     await transferSchedulerContract.methods.executeScheduledTransfer(ScheduledTransfer, signature).call({
                         from: address
                     });
-                    console.log('Contract simulation successful');
+                    console.log('Contract simulation successful for Nonce:', nonce);
                     isCallSuccessful = true;
                 } catch (error) {
                     console.log('Contract simulation failed:', error);
@@ -66,16 +63,8 @@ async function main() {
             const tx = await transferSchedulerContract.methods.executeScheduledTransfer(ScheduledTransfer, signature).send({
                 from: address
             });
-            console.log("Transfer tx executed:", tx.transactionHash);
-            // Only execute the transfer if simulation was successful
-            // try {
-            //     const tx = await transferSchedulerContract.methods.executeScheduledTransfer(ScheduledTransfer, signature).send({
-            //         from: address
-            //     });
-            //     console.log("Transfer tx executed:", tx.transactionHash);
-            // } catch (error) {
-            //     console.log('Contract execution failed:', error);
-            // }
+            console.log("Transfer executed for Nonce:", nonce, "TxHash:", tx.transactionHash);
+
         } else {
             console.log("Queued Transfer too late. Current Time:", currentTime, "NotAfterDate:", notAfterDate, "Nonce:", nonce);
         }

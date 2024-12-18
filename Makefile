@@ -36,7 +36,7 @@ stop:
 
 #--block-time 60
 start-anvil-base-fork: stop
-	anvil --chain-id 31337 --fork-url https://mainnet.base.org & echo $$! >> $(PIDFILE)
+	anvil --chain-id 31337 --block-time 30 --fork-url https://mainnet.base.org & echo $$! >> $(PIDFILE)
 	sleep 10
 
 start-anvil-local: stop
@@ -105,8 +105,6 @@ start-relay:
 	@echo "Starting relay"
 	cd relay && (ts-node relay-worker.ts & echo $$! >> $(PIDFILE))
 
-# start-webclient:
-# 	(cd website/TransferScheduler && npm run dev) & echo $$! >> $(PIDFILE)
 start-webclient:
 	cd website/TransferScheduler && npm run dev & echo $$! >> $(PIDFILE)
 

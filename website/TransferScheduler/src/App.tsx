@@ -7,6 +7,30 @@ import { config } from './wagmi';
 import { TransferSchedulerContractAddress } from './constants'
 import { getContractEvents } from 'viem/actions';
 
+async function getTokenSymbol(tokenAddress: string): Promise<string> {
+
+  // Fetch token name if we have a valid token address
+  const tokenContract = await readContract(config, {
+    abi: [{
+      name: 'symbol',
+      type: 'function',
+      stateMutability: 'view',
+      inputs: [],
+      outputs: [{ type: 'string' }],
+    }],
+    address: tokenAddress,
+    functionName: 'symbol',
+  });
+
+  try {
+    const tokenSymbol = await tokenContract;
+    return tokenSymbol;
+  } catch (error) {
+    console.error('Error fetching token symbol:', error);
+    return tokenAddress; // Fallback to address if symbol fetch fails
+  }
+}
+
 const GetScheduledTransferContractAllowance = ({ relayGasToken }: { relayGasToken: `0x${string}` | null }) => {
   const { address } = useAccount();
   const [error, setError] = React.useState<Error | null>(null);
@@ -58,6 +82,7 @@ const GetUncompletedTransfers = () => {
   const [eventLogs, setEventLogs] = React.useState<any | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
   const [updateTrigger, setUpdateTrigger] = React.useState(0);
+  const [tokenSymbols, setTokenNames] = React.useState<Record<string, string>>({});
 
   useWatchContractEvent({
     address: TransferSchedulerContractAddress,
@@ -73,7 +98,7 @@ const GetUncompletedTransfers = () => {
     onLogs: () => setUpdateTrigger(prev => prev + 1),
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     async function fetchTransfers() {
       if (address) {
         try {
@@ -121,6 +146,19 @@ const GetUncompletedTransfers = () => {
     fetchEvents();
   }, [address, updateTrigger]);
 
+  useEffect(() => {
+    async function fetchTokenSymbol() {
+      const newTokenSymbols: Record<string, string> = {};
+      for (const [key, value] of Object.entries(eventLogs)) {
+        if (key === 'token' && !tokenSymbols[value.toString()]) {
+          newTokenSymbols[value.toString()] = await getTokenSymbol(value.toString());
+        }
+      }
+      setTokenNames(prev => ({ ...prev, ...newTokenSymbols }));
+    }
+    fetchTokenSymbol();
+  }, [eventLogs]);
+
   if (error) {
     return <div>Error: {error.message}</div>;
   }
@@ -143,20 +181,30 @@ const GetUncompletedTransfers = () => {
           <tbody>
             {Object.entries(eventLogs)
               .filter(([key]) => key !== 'owner' && key !== 'signature')
-              .map(([key, value], index) => (
-                <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
-                  {key === 'notBeforeDate' || key === 'notAfterDate'
-                    ? new Date(Number(value) * 1000).toLocaleString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      timeZoneName: 'short'
-                    })
-                    : typeof value === 'bigint' ? value.toString() : value.toString()}
-                </td>
-              ))}
+              .map(([key, value], index) => {
+                return (
+                  <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
+                    {key === 'token' ? (
+                      <span title={value.toString()}>
+                        {tokenSymbols[value.toString()] || value.toString()}
+                      </span>
+                    ) : key === 'notBeforeDate' || key === 'notAfterDate' ? (
+                      new Date(Number(value) * 1000).toLocaleString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        timeZoneName: 'short'
+                      })
+                    ) : typeof value === 'bigint' ? (
+                      value.toString()
+                    ) : (
+                      value.toString()
+                    )}
+                  </td>
+                );
+              })}
           </tbody>
         </table>
       ) : (
@@ -177,6 +225,7 @@ const GetCompletedTransfers = () => {
   const [eventLogs, setEventLogs] = React.useState<any | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
   const [updateTrigger, setUpdateTrigger] = React.useState(0);
+  const [tokenSymbols, setTokenNames] = React.useState<Record<string, string>>({});
 
   useWatchContractEvent({
     address: TransferSchedulerContractAddress,
@@ -198,7 +247,7 @@ const GetCompletedTransfers = () => {
     onLogs: () => setUpdateTrigger(prev => prev + 1),
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     async function fetchTransfers() {
       if (address) {
         try {
@@ -246,6 +295,19 @@ const GetCompletedTransfers = () => {
     fetchEvents();
   }, [address, updateTrigger]);
 
+  useEffect(() => {
+    async function fetchTokenSymbol() {
+      const newTokenSymbols: Record<string, string> = {};
+      for (const [key, value] of Object.entries(eventLogs)) {
+        if (key === 'token' && !tokenSymbols[value.toString()]) {
+          newTokenSymbols[value.toString()] = await getTokenSymbol(value.toString());
+        }
+      }
+      setTokenNames(prev => ({ ...prev, ...newTokenSymbols }));
+    }
+    fetchTokenSymbol();
+  }, [eventLogs]);
+
   // for each transfer, use the blockNumber to get the contract event detail for the nonce
 
 
@@ -273,20 +335,30 @@ const GetCompletedTransfers = () => {
               <tr>
                 {Object.entries(eventLogs)
                   .filter(([key]) => key !== 'owner' && key !== 'signature')
-                  .map(([key, value], index) => (
-                    <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
-                      {key === 'notBeforeDate' || key === 'notAfterDate'
-                        ? new Date(Number(value) * 1000).toLocaleString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          timeZoneName: 'short'
-                        })
-                        : typeof value === 'bigint' ? value.toString() : value.toString()}
-                    </td>
-                  ))}
+                  .map(([key, value], index) => {
+                    return (
+                      <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
+                        {key === 'token' ? (
+                          <span title={value.toString()}>
+                            {tokenSymbols[value.toString()] || value.toString()}
+                          </span>
+                        ) : key === 'notBeforeDate' || key === 'notAfterDate' ? (
+                          new Date(Number(value) * 1000).toLocaleString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            timeZoneName: 'short'
+                          })
+                        ) : typeof value === 'bigint' ? (
+                          value.toString()
+                        ) : (
+                          value.toString()
+                        )}
+                      </td>
+                    );
+                  })}
               </tr>
             </tbody>
           </table>
@@ -306,6 +378,7 @@ function App() {
   const [relayGasTokenName, setRelayGasTokenName] = React.useState<string>('');
   const [relayGasCommissionPercentage, setRelayGasCommissionPercentage] = useState<number | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
+  const [tokenSymbols, setTokenNames] = React.useState<Record<string, string>>({});
 
   const fetchRelayGasToken = async () => {
     try {
@@ -317,18 +390,23 @@ function App() {
       setRelayGasToken(token);
 
       // Fetch token name if we have a valid token address
+      // if (token) {
+      //   const tokenName = await readContract(config, {
+      //     abi: [{
+      //       name: 'name',
+      //       type: 'function',
+      //       stateMutability: 'view',
+      //       inputs: [],
+      //       outputs: [{ type: 'string' }],
+      //     }],
+      //     address: token,
+      //     functionName: 'name',
+      //   });
+      //   setRelayGasTokenName(tokenName);
+      // }
+      // Fetch token name if we have a valid token address
       if (token) {
-        const tokenName = await readContract(config, {
-          abi: [{
-            name: 'name',
-            type: 'function',
-            stateMutability: 'view',
-            inputs: [],
-            outputs: [{ type: 'string' }],
-          }],
-          address: token,
-          functionName: 'name',
-        });
+        const tokenName = await getTokenSymbol(token);
         setRelayGasTokenName(tokenName);
       }
     } catch (err) {
@@ -357,6 +435,19 @@ function App() {
   useEffect(() => {
     fetchRelayGasCommissionPercentage();
   }, []);
+
+  useEffect(() => {
+    async function fetchTokenSymbol() {
+      const newTokenSymbols: Record<string, string> = {};
+      for (const [key, value] of Object.entries(eventLogs)) {
+        if (key === 'token' && !tokenSymbols[value.toString()]) {
+          newTokenSymbols[value.toString()] = await getTokenSymbol(value.toString());
+        }
+      }
+      setTokenNames(prev => ({ ...prev, ...newTokenSymbols }));
+    }
+    fetchTokenSymbol();
+  }, [eventLogs]);
 
   useWatchContractEvent({
     address: TransferSchedulerContractAddress,
@@ -436,20 +527,30 @@ function App() {
                   <tr>
                     {Object.entries(eventLogs)
                       .filter(([key]) => key !== 'owner' && key !== 'signature')
-                      .map(([key, value], index) => (
-                        <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
-                          {key === 'notBeforeDate' || key === 'notAfterDate'
-                            ? new Date(Number(value) * 1000).toLocaleString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              timeZoneName: 'short'
-                            })
-                            : typeof value === 'bigint' ? value.toString() : value.toString()}
-                        </td>
-                      ))}
+                      .map(([key, value], index) => {
+                        return (
+                          <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
+                            {key === 'token' ? (
+                              <span title={value.toString()}>
+                                {tokenSymbols[value.toString()] || value.toString()}
+                              </span>
+                            ) : key === 'notBeforeDate' || key === 'notAfterDate' ? (
+                              new Date(Number(value) * 1000).toLocaleString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                timeZoneName: 'short'
+                              })
+                            ) : typeof value === 'bigint' ? (
+                              value.toString()
+                            ) : (
+                              value.toString()
+                            )}
+                          </td>
+                        );
+                      })}
                   </tr>
                 </tbody>
               </table>
