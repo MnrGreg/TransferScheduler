@@ -33,8 +33,6 @@ stop:
 		rm $(PIDFILE); \
 	fi
 
-
-#--block-time 60
 start-anvil-base-fork: stop
 	anvil --chain-id 31337 --block-time 30 --fork-url https://mainnet.base.org & echo $$! >> $(PIDFILE)
 	sleep 10
@@ -91,7 +89,7 @@ deploy-transferscheduler-contract:
 	@echo "Deployed TransferScheduler contract behind proxy address: ${TSCONTRACT}"
 	forge inspect contracts/src/TransferSchedulerV1.sol:TransferSchedulerV1 abi > ./client/transferSchedulerABI.json
 	sed -i '' -e "s/'.*';/'${TSCONTRACT}';/" client/constants.ts
-	sed -i '' -e "s/'.*';/'${TSCONTRACT}';/" website/TransferScheduler/src/constants.ts
+	sed -i '' -e "s/'.*';/'${TSCONTRACT}';/" frontend/src/constants.ts
 
 approve-transferscheduler-usdc:
 	@echo "Approving USDC TransferScheduler contract spending: ${TSCONTRACT}"
@@ -106,7 +104,7 @@ start-relay:
 	cd relay && (ts-node relay-worker.ts & echo $$! >> $(PIDFILE))
 
 start-webclient:
-	cd website/TransferScheduler && npm run dev & echo $$! >> $(PIDFILE)
+	cd frontend && npm run dev & echo $$! >> $(PIDFILE)
 
 # TODO: remove not included 
 start-otterscan:

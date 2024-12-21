@@ -92,7 +92,6 @@ contract TransferSchedulerV1 is IScheduledTransfer, EIP712Upgradeable, UUPSUpgra
             addressNonceIndices[_wallet].push(_nonce);
         }
         transfers[_wallet][_nonce] = addressNonceRecord(uint40(block.number), false, true);
-        addressNonceIndices[_wallet].push(_nonce);
 
         emit TransferScheduled(
             _wallet, _nonce, _token, _to, _amount, _notBeforeDate, _notAfterDate, _maxBaseFee, _signature

@@ -31,7 +31,7 @@ async function getTokenSymbol(tokenAddress: string): Promise<string> {
   }
 }
 
-const GetScheduledTransferContractAllowance = ({ relayGasToken }: { relayGasToken: `0x${string}` | null }) => {
+const GetScheduledTransferContractAllowance = ({ relayGasToken }: { relayGasToken: string | null }) => {
   const { address } = useAccount();
   const [error, setError] = React.useState<Error | null>(null);
   const [allowance, setGasTokenAllowance] = React.useState<bigint | null>(null);
@@ -98,7 +98,7 @@ const GetUncompletedTransfers = () => {
     onLogs: () => setUpdateTrigger(prev => prev + 1),
   });
 
-  useEffect(() => {
+  React.useEffect(() => {
     async function fetchTransfers() {
       if (address) {
         try {
@@ -108,19 +108,23 @@ const GetUncompletedTransfers = () => {
             functionName: 'getScheduledTransfers',
             args: [address, false],
           });
-          setTransfers(transfers);
+          setTransfers(transfers); // Convert to mutable array
+          console.log("Uncompleted transfers:", transfers);
         } catch (err: any) {
           setError(err);
         }
       }
     }
     fetchTransfers();
+  }, [address, updateTrigger]);
 
+  React.useEffect(() => {
     async function fetchEvents() {
       if (!transfers) {
-        return <div>watching...</div>;
+        return;
       }
       console.log("Uncompleted transfers:", transfers);
+      const allEventLogs = [];
       for (let i = 0; i < transfers.length; i++) {
         const transfer = transfers[i];
         const nonce = transfer.nonce.toString();
@@ -135,18 +139,20 @@ const GetUncompletedTransfers = () => {
           fromBlock: BigInt(blockNumber),
           toBlock: BigInt(blockNumber),
           strict: true
-        })
-        // TODO: handle multiple events
-        if (logs[0].args.nonce.toString() === nonce) {
-          console.log(logs[0].args);
-          setEventLogs(logs[0].args);
-        }
+        });
+        // Collect all matching logs
+        logs.forEach(log => {
+          if (log.args.nonce.toString() === nonce) {
+            allEventLogs.push(log.args);
+          }
+        });
       }
+      setEventLogs(allEventLogs);
     }
     fetchEvents();
-  }, [address, updateTrigger]);
+  }, [transfers]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     async function fetchTokenSymbol() {
       const newTokenSymbols: Record<string, string> = {};
       for (const [key, value] of Object.entries(eventLogs)) {
@@ -165,51 +171,54 @@ const GetUncompletedTransfers = () => {
 
   return (
     <div>
-      {eventLogs ? (
-        <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-          <thead>
-            <tr>
-              {Object.keys(eventLogs)
-                .filter(key => key !== 'owner' && key !== 'signature')
-                .map((key) => (
-                  <th key={key} style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>
-                    {key}
-                  </th>
-                ))}
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(eventLogs)
-              .filter(([key]) => key !== 'owner' && key !== 'signature')
-              .map(([key, value], index) => {
-                return (
-                  <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
-                    {key === 'token' ? (
-                      <span title={value.toString()}>
-                        {tokenSymbols[value.toString()] || value.toString()}
-                      </span>
-                    ) : key === 'notBeforeDate' || key === 'notAfterDate' ? (
-                      new Date(Number(value) * 1000).toLocaleString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        timeZoneName: 'short'
-                      })
-                    ) : typeof value === 'bigint' ? (
-                      value.toString()
-                    ) : (
-                      value.toString()
-                    )}
-                  </td>
-                );
-              })}
-          </tbody>
-        </table>
-      ) : (
-        'Loading...'
-      )}
+      {
+        eventLogs && eventLogs.length > 0 ? (
+          <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+            <thead>
+              <tr>
+                {Object.keys(eventLogs[0])
+                  .filter(key => key !== 'owner' && key !== 'signature')
+                  .map((key) => (
+                    <th key={key} style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>
+                      {key}
+                    </th>
+                  ))}
+              </tr>
+            </thead>
+            <tbody>
+              {eventLogs.map((log, index) => (
+                <tr key={index}>
+                  {Object.entries(log)
+                    .filter(([key]) => key !== 'owner' && key !== 'signature')
+                    .map(([key, value], index) => (
+                      <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
+                        {key === 'token' ? (
+                          <span title={value.toString()}>
+                            {tokenSymbols[value.toString()] || value.toString()}
+                          </span>
+                        ) : key === 'notBeforeDate' || key === 'notAfterDate' ? (
+                          new Date(Number(value) * 1000).toLocaleString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            timeZoneName: 'short'
+                          })
+                        ) : typeof value === 'bigint' ? (
+                          value.toString()
+                        ) : (
+                          value.toString()
+                        )}
+                      </td>
+                    ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          'Loading...'
+        )}
     </div>
   );
 };
@@ -247,7 +256,7 @@ const GetCompletedTransfers = () => {
     onLogs: () => setUpdateTrigger(prev => prev + 1),
   });
 
-  useEffect(() => {
+  React.useEffect(() => {
     async function fetchTransfers() {
       if (address) {
         try {
@@ -257,19 +266,22 @@ const GetCompletedTransfers = () => {
             functionName: 'getScheduledTransfers',
             args: [address, true],
           });
-          setTransfers(transfers);
+          setTransfers(transfers); // Convert to mutable array
         } catch (err: any) {
           setError(err);
         }
       }
     }
     fetchTransfers();
+  }, [address]); // Ensure address is a dependency
 
+  React.useEffect(() => {
     async function fetchEvents() {
       if (!transfers) {
-        return <div>watching...</div>;
+        return;
       }
       console.log("Completed transfers:", transfers);
+      const allEventLogs = [];
       for (let i = 0; i < transfers.length; i++) {
         const transfer = transfers[i];
         const nonce = transfer.nonce.toString();
@@ -284,17 +296,20 @@ const GetCompletedTransfers = () => {
           fromBlock: BigInt(blockNumber),
           toBlock: BigInt(blockNumber),
           strict: true
-        })
-        // TODO: handle multiple events
-        if (logs[0].args.nonce.toString() === nonce) {
-          console.log(logs[0].args);
-          setEventLogs(logs[0].args);
-        }
+        });
+        // Collect all matching logs
+        logs.forEach(log => {
+          if (log.args.nonce.toString() === nonce) {
+            allEventLogs.push(log.args);
+          }
+        });
       }
+      setEventLogs(allEventLogs);
     }
     fetchEvents();
-  }, [address, updateTrigger]);
+  }, [transfers]);
 
+  // for each transfer, use the blockNumber to get the contract event detail for the nonce
   useEffect(() => {
     async function fetchTokenSymbol() {
       const newTokenSymbols: Record<string, string> = {};
@@ -308,7 +323,6 @@ const GetCompletedTransfers = () => {
     fetchTokenSymbol();
   }, [eventLogs]);
 
-  // for each transfer, use the blockNumber to get the contract event detail for the nonce
 
 
   if (error) {
@@ -318,11 +332,11 @@ const GetCompletedTransfers = () => {
   return (
     <div>
       {
-        eventLogs ? (
+        eventLogs && eventLogs.length > 0 ? (
           <table style={{ borderCollapse: 'collapse', width: '100%' }}>
             <thead>
               <tr>
-                {Object.keys(eventLogs)
+                {Object.keys(eventLogs[0])
                   .filter(key => key !== 'owner' && key !== 'signature')
                   .map((key) => (
                     <th key={key} style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>
@@ -332,11 +346,11 @@ const GetCompletedTransfers = () => {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                {Object.entries(eventLogs)
-                  .filter(([key]) => key !== 'owner' && key !== 'signature')
-                  .map(([key, value], index) => {
-                    return (
+              {eventLogs.map((log, index) => (
+                <tr key={index}>
+                  {Object.entries(log)
+                    .filter(([key]) => key !== 'owner' && key !== 'signature')
+                    .map(([key, value], index) => (
                       <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
                         {key === 'token' ? (
                           <span title={value.toString()}>
@@ -357,9 +371,9 @@ const GetCompletedTransfers = () => {
                           value.toString()
                         )}
                       </td>
-                    );
-                  })}
-              </tr>
+                    ))}
+                </tr>
+              ))}
             </tbody>
           </table>
         ) : (
@@ -374,7 +388,7 @@ function App() {
   const { connect, connectors, error: connectError, status: isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
   const [eventLogs, setEventLogs] = React.useState<any | null>(null);
-  const [relayGasToken, setRelayGasToken] = React.useState<`0x${string}` | null>(null);
+  const [relayGasToken, setRelayGasToken] = React.useState<string | null>(null);
   const [relayGasTokenName, setRelayGasTokenName] = React.useState<string>('');
   const [relayGasCommissionPercentage, setRelayGasCommissionPercentage] = useState<number | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
@@ -389,22 +403,6 @@ function App() {
       });
       setRelayGasToken(token);
 
-      // Fetch token name if we have a valid token address
-      // if (token) {
-      //   const tokenName = await readContract(config, {
-      //     abi: [{
-      //       name: 'name',
-      //       type: 'function',
-      //       stateMutability: 'view',
-      //       inputs: [],
-      //       outputs: [{ type: 'string' }],
-      //     }],
-      //     address: token,
-      //     functionName: 'name',
-      //   });
-      //   setRelayGasTokenName(tokenName);
-      // }
-      // Fetch token name if we have a valid token address
       if (token) {
         const tokenName = await getTokenSymbol(token);
         setRelayGasTokenName(tokenName);
