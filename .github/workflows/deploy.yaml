@@ -11,20 +11,25 @@ jobs:
   build-and-deploy:
     concurrency: ci-${{ github.ref }}
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
-      - name: Checkout 🛎️
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Change working directoy
-        run: cd frontend
+        with:
+          path: frontend
 
       - name: Install and Build
         run: |
+          pwd
+          tree ./ -L1
+          tree ../ -L1
           npm ci
           npm run build
 
       - name: Deploy Frontend
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: frontend/build
+          folder: dist
           branch: gh-pages

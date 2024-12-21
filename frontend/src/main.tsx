@@ -1,4 +1,4 @@
-import { Buffer } from 'buffer'
+//import { Buffer } from 'buffer'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
@@ -9,7 +9,7 @@ import { config } from './wagmi.ts'
 
 import './index.css'
 
-globalThis.Buffer = Buffer
+//globalThis.Buffer = Buffer
 
 const queryClient = new QueryClient()
 

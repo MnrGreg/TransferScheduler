@@ -7,7 +7,28 @@ import { config } from './wagmi';
 import { TransferSchedulerContractAddress } from './constants'
 import { getContractEvents } from 'viem/actions';
 
-async function getTokenSymbol(tokenAddress: string): Promise<string> {
+type QueuedTransferRecord = {
+  nonce: bigint;
+  blockNumber: number;
+};
+
+type QueuedTransferRecords = QueuedTransferRecord[];
+
+type TransferScheduledEventLog = {
+  owner: `0x${string}`; // address type in TypeScript for Ethereum
+  nonce: bigint;        // uint96
+  token: `0x${string}`; // address
+  to: `0x${string}`;    // address
+  amount: bigint;       // uint128
+  notBeforeDate: number; // uint40
+  notAfterDate: number;  // uint40
+  maxBaseFee: number;    // uint40
+  signature: `0x${string}`; // bytes
+};
+
+type TransferScheduledEventLogs = TransferScheduledEventLog[];
+
+async function getTokenSymbol(tokenAddress: `0x${string}`): Promise<string> {
 
   // Fetch token name if we have a valid token address
   const tokenContract = await readContract(config, {
@@ -31,7 +52,7 @@ async function getTokenSymbol(tokenAddress: string): Promise<string> {
   }
 }
 
-const GetScheduledTransferContractAllowance = ({ relayGasToken }: { relayGasToken: string | null }) => {
+const GetScheduledTransferContractAllowance = ({ relayGasToken }: { relayGasToken: `0x${string}` | null }) => {
   const { address } = useAccount();
   const [error, setError] = React.useState<Error | null>(null);
   const [allowance, setGasTokenAllowance] = React.useState<bigint | null>(null);
@@ -72,14 +93,9 @@ const GetScheduledTransferContractAllowance = ({ relayGasToken }: { relayGasToke
 };
 
 const GetUncompletedTransfers = () => {
-  type queuedTransferRecords = {
-    nonce: BigInt;
-    blockNumber: BigInt;
-  }[];
-
   const { address } = useAccount();
-  const [transfers, setTransfers] = React.useState<queuedTransferRecords | null>(null);
-  const [eventLogs, setEventLogs] = React.useState<any | null>(null);
+  const [transfers, setTransfers] = React.useState<QueuedTransferRecords | null>(null);
+  const [eventLogs, setEventLogs] = React.useState<TransferScheduledEventLogs | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
   const [updateTrigger, setUpdateTrigger] = React.useState(0);
   const [tokenSymbols, setTokenNames] = React.useState<Record<string, string>>({});
@@ -102,13 +118,14 @@ const GetUncompletedTransfers = () => {
     async function fetchTransfers() {
       if (address) {
         try {
-          const transfers = await readContract(config, {
+          const transfersResult = await readContract(config, {
             abi,
             address: TransferSchedulerContractAddress,
             functionName: 'getScheduledTransfers',
             args: [address, false],
           });
-          setTransfers(transfers); // Convert to mutable array
+          const mutableTransfers = [...transfersResult];
+          setTransfers(mutableTransfers);
           console.log("Uncompleted transfers:", transfers);
         } catch (err: any) {
           setError(err);
@@ -124,7 +141,7 @@ const GetUncompletedTransfers = () => {
         return;
       }
       console.log("Uncompleted transfers:", transfers);
-      const allEventLogs = [];
+      const transferScheduledEventLogs: TransferScheduledEventLog[] = [];
       for (let i = 0; i < transfers.length; i++) {
         const transfer = transfers[i];
         const nonce = transfer.nonce.toString();
@@ -143,21 +160,23 @@ const GetUncompletedTransfers = () => {
         // Collect all matching logs
         logs.forEach(log => {
           if (log.args.nonce.toString() === nonce) {
-            allEventLogs.push(log.args);
+            transferScheduledEventLogs.push(log.args);
           }
         });
       }
-      setEventLogs(allEventLogs);
+      setEventLogs(transferScheduledEventLogs);
     }
     fetchEvents();
   }, [transfers]);
 
   React.useEffect(() => {
     async function fetchTokenSymbol() {
+      if (!eventLogs) return;
+
       const newTokenSymbols: Record<string, string> = {};
       for (const [key, value] of Object.entries(eventLogs)) {
         if (key === 'token' && !tokenSymbols[value.toString()]) {
-          newTokenSymbols[value.toString()] = await getTokenSymbol(value.toString());
+          newTokenSymbols[value.toString()] = await getTokenSymbol(value.toString() as `0x${string}`);
         }
       }
       setTokenNames(prev => ({ ...prev, ...newTokenSymbols }));
@@ -190,7 +209,7 @@ const GetUncompletedTransfers = () => {
                 <tr key={index}>
                   {Object.entries(log)
                     .filter(([key]) => key !== 'owner' && key !== 'signature')
-                    .map(([key, value], index) => (
+                    .map(([key, value], index: number) => (
                       <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
                         {key === 'token' ? (
                           <span title={value.toString()}>
@@ -224,14 +243,9 @@ const GetUncompletedTransfers = () => {
 };
 
 const GetCompletedTransfers = () => {
-  type queuedTransferRecords = {
-    nonce: BigInt;
-    blockNumber: BigInt;
-  }[];
-
   const { address } = useAccount();
-  const [transfers, setTransfers] = React.useState<queuedTransferRecords | null>(null);
-  const [eventLogs, setEventLogs] = React.useState<any | null>(null);
+  const [transfers, setTransfers] = React.useState<QueuedTransferRecords | null>(null);
+  const [eventLogs, setEventLogs] = React.useState<TransferScheduledEventLogs | null>(null);
   const [error, setError] = React.useState<Error | null>(null);
   const [updateTrigger, setUpdateTrigger] = React.useState(0);
   const [tokenSymbols, setTokenNames] = React.useState<Record<string, string>>({});
@@ -260,20 +274,21 @@ const GetCompletedTransfers = () => {
     async function fetchTransfers() {
       if (address) {
         try {
-          const transfers = await readContract(config, {
+          const transfersResult = await readContract(config, {
             abi,
             address: TransferSchedulerContractAddress,
             functionName: 'getScheduledTransfers',
             args: [address, true],
           });
-          setTransfers(transfers); // Convert to mutable array
+          const mutableTransfers = [...transfersResult];
+          setTransfers(mutableTransfers);
         } catch (err: any) {
           setError(err);
         }
       }
     }
     fetchTransfers();
-  }, [address]); // Ensure address is a dependency
+  }, [address, updateTrigger]); // Ensure address is a dependency
 
   React.useEffect(() => {
     async function fetchEvents() {
@@ -281,7 +296,7 @@ const GetCompletedTransfers = () => {
         return;
       }
       console.log("Completed transfers:", transfers);
-      const allEventLogs = [];
+      const transferScheduledEventLogs: TransferScheduledEventLog[] = [];
       for (let i = 0; i < transfers.length; i++) {
         const transfer = transfers[i];
         const nonce = transfer.nonce.toString();
@@ -300,11 +315,11 @@ const GetCompletedTransfers = () => {
         // Collect all matching logs
         logs.forEach(log => {
           if (log.args.nonce.toString() === nonce) {
-            allEventLogs.push(log.args);
+            transferScheduledEventLogs.push(log.args);
           }
         });
       }
-      setEventLogs(allEventLogs);
+      setEventLogs(transferScheduledEventLogs);
     }
     fetchEvents();
   }, [transfers]);
@@ -312,10 +327,11 @@ const GetCompletedTransfers = () => {
   // for each transfer, use the blockNumber to get the contract event detail for the nonce
   useEffect(() => {
     async function fetchTokenSymbol() {
+      if (!eventLogs) return;
       const newTokenSymbols: Record<string, string> = {};
       for (const [key, value] of Object.entries(eventLogs)) {
         if (key === 'token' && !tokenSymbols[value.toString()]) {
-          newTokenSymbols[value.toString()] = await getTokenSymbol(value.toString());
+          newTokenSymbols[value.toString()] = await getTokenSymbol(value.toString() as `0x${string}`);
         }
       }
       setTokenNames(prev => ({ ...prev, ...newTokenSymbols }));
@@ -350,7 +366,7 @@ const GetCompletedTransfers = () => {
                 <tr key={index}>
                   {Object.entries(log)
                     .filter(([key]) => key !== 'owner' && key !== 'signature')
-                    .map(([key, value], index) => (
+                    .map(([key, value], index: number) => (
                       <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
                         {key === 'token' ? (
                           <span title={value.toString()}>
@@ -388,10 +404,10 @@ function App() {
   const { connect, connectors, error: connectError, status: isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
   const [eventLogs, setEventLogs] = React.useState<any | null>(null);
-  const [relayGasToken, setRelayGasToken] = React.useState<string | null>(null);
+  const [relayGasToken, setRelayGasToken] = React.useState<`0x${string}` | null>(null);
   const [relayGasTokenName, setRelayGasTokenName] = React.useState<string>('');
   const [relayGasCommissionPercentage, setRelayGasCommissionPercentage] = useState<number | null>(null);
-  const [error, setError] = React.useState<Error | null>(null);
+  //const [error, setError] = React.useState<Error | null>(null);
   const [tokenSymbols, setTokenNames] = React.useState<Record<string, string>>({});
 
   const fetchRelayGasToken = async () => {
@@ -400,7 +416,7 @@ function App() {
         abi,
         address: TransferSchedulerContractAddress,
         functionName: 'getGasToken',
-      });
+      }) as `0x${string}`;
       setRelayGasToken(token);
 
       if (token) {
@@ -409,7 +425,7 @@ function App() {
       }
     } catch (err) {
       console.error('Error fetching relay gas token:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch relay gas token'));
+      //setError(err instanceof Error ? err : new Error('Failed to fetch relay gas token'));
     }
   };
 
@@ -436,10 +452,12 @@ function App() {
 
   useEffect(() => {
     async function fetchTokenSymbol() {
+      if (!eventLogs) return;
+
       const newTokenSymbols: Record<string, string> = {};
-      for (const [key, value] of Object.entries(eventLogs)) {
-        if (key === 'token' && !tokenSymbols[value.toString()]) {
-          newTokenSymbols[value.toString()] = await getTokenSymbol(value.toString());
+      for (const [key, value] of Object.entries(eventLogs) as [string, string | undefined][]) {
+        if (key === 'token' && value !== undefined && value && !tokenSymbols[value.toString()]) {
+          newTokenSymbols[value.toString()] = await getTokenSymbol(value as `0x${string}`);
         }
       }
       setTokenNames(prev => ({ ...prev, ...newTokenSymbols }));
@@ -522,11 +540,11 @@ function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    {Object.entries(eventLogs)
-                      .filter(([key]) => key !== 'owner' && key !== 'signature')
-                      .map(([key, value], index) => {
-                        return (
+                  {eventLogs && eventLogs.map((log: TransferScheduledEventLog, index: number) => (
+                    <tr key={index}>
+                      {Object.entries(log)
+                        .filter(([key]) => key !== 'owner' && key !== 'signature')
+                        .map(([key, value], index: number) => (
                           <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
                             {key === 'token' ? (
                               <span title={value.toString()}>
@@ -547,9 +565,9 @@ function App() {
                               value.toString()
                             )}
                           </td>
-                        );
-                      })}
-                  </tr>
+                        ))}
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             ) : (

@@ -22,14 +22,14 @@ export function QueueTransferTransaction() {
     async function submit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
         const formData = new FormData(e.target as HTMLFormElement);
-        const token = formData.get('token') as string;
-        const to = formData.get('to') as string;
+        const token = formData.get('token') as `0x${string}`;
+        const to = formData.get('to') as `0x${string}`;
         const amount = BigInt(formData.get('amount') as string);
         const notBeforeDateInput = (e.target as HTMLFormElement).querySelector('input[name="notBeforeDate"]') as HTMLInputElement;
         const notAfterDateInput = (e.target as HTMLFormElement).querySelector('input[name="notAfterDate"]') as HTMLInputElement;
-        const notBeforeDate = BigInt(notBeforeDateInput.dataset.timestamp || '0');
-        const notAfterDate = BigInt(notAfterDateInput.dataset.timestamp || '0');
-        const maxBaseFee = BigInt(formData.get('maxBaseFee') as string);
+        const notBeforeDate = Number(notBeforeDateInput.dataset.timestamp || '0');
+        const notAfterDate = Number(notAfterDateInput.dataset.timestamp || '0');
+        const maxBaseFee = Number(formData.get('maxBaseFee') as string);
 
         if (!address) {
             setError(new Error('Address is required'));
@@ -92,8 +92,6 @@ export function QueueTransferTransaction() {
                     maxBaseFee: maxBaseFee,
                 },
             });
-            //console.log('Signature:', signature);
-
             setIsPending(true);
 
             const { request } = await simulateContract(config, {
@@ -108,7 +106,7 @@ export function QueueTransferTransaction() {
                     amount,
                     notBeforeDate,
                     notAfterDate,
-                    BigInt(maxBaseFee),
+                    maxBaseFee,
                     signature,
                 ],
                 type: 'eip1559',
