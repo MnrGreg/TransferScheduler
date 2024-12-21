@@ -23,8 +23,7 @@ jobs:
       - name: Install and Build
         run: |
           pwd
-          tree ./ -L1
-          tree ../ -L1
+          tree ./ -L 1
           npm ci
           npm run build
 

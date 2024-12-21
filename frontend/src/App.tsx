@@ -453,7 +453,6 @@ function App() {
   useEffect(() => {
     async function fetchTokenSymbol() {
       if (!eventLogs) return;
-
       const newTokenSymbols: Record<string, string> = {};
       for (const [key, value] of Object.entries(eventLogs) as [string, string | undefined][]) {
         if (key === 'token' && value !== undefined && value && !tokenSymbols[value.toString()]) {
