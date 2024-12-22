@@ -28,7 +28,7 @@ type TransferScheduledEventLog = {
 
 type TransferScheduledEventLogs = TransferScheduledEventLog[];
 
-async function getTokenSymbol(tokenAddress: `0x${string}`): Promise<string> {
+export async function getTokenSymbol(tokenAddress: `0x${string}`): Promise<string> {
 
   // Fetch token name if we have a valid token address
   const tokenContract = await readContract(config, {
@@ -52,45 +52,7 @@ async function getTokenSymbol(tokenAddress: `0x${string}`): Promise<string> {
   }
 }
 
-const GetScheduledTransferContractAllowance = ({ relayGasToken }: { relayGasToken: `0x${string}` | null }) => {
-  const { address } = useAccount();
-  const [error, setError] = React.useState<Error | null>(null);
-  const [allowance, setGasTokenAllowance] = React.useState<bigint | null>(null);
 
-  React.useEffect(() => {
-    async function fetchAllowance() {
-      if (address && relayGasToken) {
-        try {
-          const allowanceResult = await readContract(config, {
-            abi: [{
-              name: 'allowance',
-              type: 'function',
-              stateMutability: 'view',
-              inputs: [
-                { name: 'owner', type: 'address' },
-                { name: 'spender', type: 'address' },
-              ],
-              outputs: [{ type: 'uint256' }],
-            }],
-            address: relayGasToken,
-            functionName: 'allowance',
-            args: [address, TransferSchedulerContractAddress],
-          });
-          setGasTokenAllowance(allowanceResult);
-        } catch (err: any) {
-          setError(err);
-        }
-      }
-    }
-    fetchAllowance();
-  }, [address, relayGasToken]);
-
-  if (error) {
-    return <div>Error: {error.message}</div>;
-  }
-
-  return <div>Gas token allowance: {allowance ? allowance.toString() : 'Loading...'}</div>
-};
 
 const GetUncompletedTransfers = () => {
   const { address } = useAccount();
@@ -174,9 +136,9 @@ const GetUncompletedTransfers = () => {
       if (!eventLogs) return;
 
       const newTokenSymbols: Record<string, string> = {};
-      for (const [key, value] of Object.entries(eventLogs)) {
-        if (key === 'token' && !tokenSymbols[value.toString()]) {
-          newTokenSymbols[value.toString()] = await getTokenSymbol(value.toString() as `0x${string}`);
+      for (const log of eventLogs) {
+        if (!tokenSymbols[log.token]) {
+          newTokenSymbols[log.token] = await getTokenSymbol(log.token);
         }
       }
       setTokenNames(prev => ({ ...prev, ...newTokenSymbols }));
@@ -297,6 +259,7 @@ const GetCompletedTransfers = () => {
       }
       console.log("Completed transfers:", transfers);
       const transferScheduledEventLogs: TransferScheduledEventLog[] = [];
+      // for each transfer, use the blockNumber to get the contract event detail for the nonce
       for (let i = 0; i < transfers.length; i++) {
         const transfer = transfers[i];
         const nonce = transfer.nonce.toString();
@@ -324,14 +287,14 @@ const GetCompletedTransfers = () => {
     fetchEvents();
   }, [transfers]);
 
-  // for each transfer, use the blockNumber to get the contract event detail for the nonce
-  useEffect(() => {
+  React.useEffect(() => {
     async function fetchTokenSymbol() {
+
       if (!eventLogs) return;
       const newTokenSymbols: Record<string, string> = {};
-      for (const [key, value] of Object.entries(eventLogs)) {
-        if (key === 'token' && !tokenSymbols[value.toString()]) {
-          newTokenSymbols[value.toString()] = await getTokenSymbol(value.toString() as `0x${string}`);
+      for (const log of eventLogs) {
+        if (!tokenSymbols[log.token]) {
+          newTokenSymbols[log.token] = await getTokenSymbol(log.token);
         }
       }
       setTokenNames(prev => ({ ...prev, ...newTokenSymbols }));
@@ -403,67 +366,13 @@ function App() {
   const { address, chainId, status: accountStatus } = useAccount();
   const { connect, connectors, error: connectError, status: isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
-  const [eventLogs, setEventLogs] = React.useState<any | null>(null);
-  const [relayGasToken, setRelayGasToken] = React.useState<`0x${string}` | null>(null);
-  const [relayGasTokenName, setRelayGasTokenName] = React.useState<string>('');
-  const [relayGasCommissionPercentage, setRelayGasCommissionPercentage] = useState<number | null>(null);
-  //const [error, setError] = React.useState<Error | null>(null);
+  const [eventLogs, setEventLogs] = React.useState<TransferScheduledEventLogs | null>(null);
+
   const [tokenSymbols, setTokenNames] = React.useState<Record<string, string>>({});
 
-  const fetchRelayGasToken = async () => {
-    try {
-      const token = await readContract(config, {
-        abi,
-        address: TransferSchedulerContractAddress,
-        functionName: 'getGasToken',
-      }) as `0x${string}`;
-      setRelayGasToken(token);
 
-      if (token) {
-        const tokenName = await getTokenSymbol(token);
-        setRelayGasTokenName(tokenName);
-      }
-    } catch (err) {
-      console.error('Error fetching relay gas token:', err);
-      //setError(err instanceof Error ? err : new Error('Failed to fetch relay gas token'));
-    }
-  };
 
-  useEffect(() => {
-    fetchRelayGasToken();
-  }, []); // Empty dependency array means this runs once on mount
-
-  const fetchRelayGasCommissionPercentage = async () => {
-    try {
-      const percentage = await readContract(config, {
-        abi,
-        address: TransferSchedulerContractAddress,
-        functionName: 'getGasCommissionPercentage',
-      });
-      setRelayGasCommissionPercentage(Number(percentage));
-    } catch (err) {
-      console.error('Error fetching relay gas commission percentage:', err);
-    }
-  };
-
-  useEffect(() => {
-    fetchRelayGasCommissionPercentage();
-  }, []);
-
-  useEffect(() => {
-    async function fetchTokenSymbol() {
-      if (!eventLogs) return;
-      const newTokenSymbols: Record<string, string> = {};
-      for (const [key, value] of Object.entries(eventLogs) as [string, string | undefined][]) {
-        if (key === 'token' && value !== undefined && value && !tokenSymbols[value.toString()]) {
-          newTokenSymbols[value.toString()] = await getTokenSymbol(value as `0x${string}`);
-        }
-      }
-      setTokenNames(prev => ({ ...prev, ...newTokenSymbols }));
-    }
-    fetchTokenSymbol();
-  }, [eventLogs]);
-
+  const transferScheduledEventLogs: TransferScheduledEventLog[] = [];
   useWatchContractEvent({
     address: TransferSchedulerContractAddress,
     abi,
@@ -473,9 +382,25 @@ function App() {
     },
     onLogs(logs) {
       console.log(logs[0].args);
-      setEventLogs(logs[0].args);
+      setEventLogs(transferScheduledEventLogs);
     }
   })
+
+  useEffect(() => {
+    async function fetchTokenSymbol() {
+      if (!eventLogs) return;
+
+      const newTokenSymbols: Record<string, string> = {};
+      for (const log of eventLogs) {
+        if (!tokenSymbols[log.token]) {
+          newTokenSymbols[log.token] = await getTokenSymbol(log.token);
+        }
+      }
+      setTokenNames(prev => ({ ...prev, ...newTokenSymbols }));
+    }
+    fetchTokenSymbol();
+  }, [eventLogs]);
+
 
   return (
     <>
@@ -511,12 +436,6 @@ function App() {
 
       {accountStatus === 'connected' && (
         <>
-          <div>
-            <h3>TransferSchedule Allowance</h3>
-            <div>Gas token: {relayGasToken} ({relayGasTokenName})</div>
-            <GetScheduledTransferContractAllowance relayGasToken={relayGasToken} />
-            <div>Relayer gas fee: block.basefee * gas * {relayGasCommissionPercentage}%</div>
-          </div>
 
           <div>
             <h3>Queue Transfer Transaction</h3>
