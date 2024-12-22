@@ -1,12 +1,3 @@
-#
-# Shows help message.
-#
-.PHONY: help
-help:
-	@echo 'To release a ve, run the following commands in order on the branch where you make a release.'
-	@echo '  $$ make forked-base'
-	@echo '  $$ make all'
-
 
 # Base ERC20 contract addresses
 USDC_CONTRACT?=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
@@ -37,14 +28,10 @@ start-anvil-base-fork: stop
 	anvil --chain-id 31337 --block-time 30 --fork-url https://mainnet.base.org & echo $$! >> $(PIDFILE)
 	sleep 10
 
-start-anvil-local: stop
-	anvil --base-fee 7 & echo $$! >> $(PIDFILE)
-	sleep 10
-
 # Transfer USDC when using forked chain
 transfer-usdc:
 	cast rpc anvil_impersonateAccount ${USDC_HOLDER}
-	cast send ${USDC_CONTRACT} --from ${USDC_HOLDER} "transfer(address,uint256)(bool)" ${ADDRESS} 100000000 --unlocked
+	cast send ${USDC_CONTRACT} --from ${USDC_HOLDER} "transfer(address,uint256)(bool)" ${ADDRESS} 1000000000 --unlocked
 	cast rpc anvil_stopImpersonatingAccount ${USDC_HOLDER}
 
 # Transfer WETH when using forked chain
@@ -52,30 +39,6 @@ transfer-weth:
 	cast rpc anvil_impersonateAccount ${WETH_CONTRACT}
 	cast send ${WETH_CONTRACT} --from ${WETH_CONTRACT} "transfer(address,uint256)(bool)" ${ADDRESS} 100000000000 --unlocked
 	cast rpc anvil_stopImpersonatingAccount ${WETH_CONTRACT}
-
-# Deploy USDC when using local anvil
-deploy-mock-usdc:
-	@echo "Deploying USDC ERC20 contract for local anvil"
-	$(eval USDC_CONTRACT := $(shell forge create --rpc-url 127.0.0.1:8545 --private-key ${SIGNERKEY} \
-		contracts/lib/permit2/test/mocks/MockERC20.sol:MockERC20 \
-		--constructor-args "USDCERC20" "USDC" 18 1000000000000000000000 \
-		| grep 'Deployed to:' \
-		| sed -e 's/.*Deployed to: //g'))
-	@echo "Deployed USDC contract to: ${USDC_CONTRACT}"
-	cast send ${USDC_CONTRACT} "mint(address _to, uint256 _amount)" ${ADDRESS} 90000000000000000000000 --private-key ${SIGNERKEY}
-	cast call -v ${USDC_CONTRACT} "balanceOf(address)" ${ADDRESS}
-
-# Deploy WETH when using local anvil
-deploy-mock-weth:
-	@echo "Deploying WETH ERC20 contract for local anvil"
-	$(eval WETH_CONTRACT := $(shell forge create --rpc-url 127.0.0.1:8545 --private-key ${SIGNERKEY} \
-		contracts/lib/permit2/test/mocks/MockERC20.sol:MockERC20 \
-		--constructor-args "WETH" "WETH" 18 1000000000000000000000 \
-		| grep 'Deployed to:' \
-		| sed -e 's/.*Deployed to: //g'))
-	@echo "Deployed WETH contract to: ${WETH_CONTRACT}"
-	cast send ${WETH_CONTRACT} "mint(address _to, uint256 _amount)" ${ADDRESS} 9000000000000000000000 --private-key ${SIGNERKEY}
-	cast call -v ${WETH_CONTRACT} "balanceOf(address)" ${ADDRESS}
 
 deploy-transferscheduler-contract:
 	sed -i '' -e "s/address(0x.*),/address(${WETH_CONTRACT}),/" contracts/scripts/DeployTransferSchedulerProxy.s.sol
@@ -87,13 +50,13 @@ deploy-transferscheduler-contract:
 		| grep '1: address' \
 		| sed -e 's/.*address //g'))
 	@echo "Deployed TransferScheduler contract behind proxy address: ${TSCONTRACT}"
-	forge inspect contracts/src/TransferSchedulerV1.sol:TransferSchedulerV1 abi > ./client/transferSchedulerABI.json
-	sed -i '' -e "s/'.*';/'${TSCONTRACT}';/" client/constants.ts
+	forge inspect contracts/src/TransferSchedulerV1.sol:TransferSchedulerV1 abi > ./client-sdk/transferSchedulerABI.json
+	sed -i '' -e "s/'.*';/'${TSCONTRACT}';/" client-sdk/constants.ts
 	sed -i '' -e "s/'.*';/'${TSCONTRACT}';/" frontend/src/constants.ts
 
 approve-transferscheduler-usdc:
 	@echo "Approving USDC TransferScheduler contract spending: ${TSCONTRACT}"
-	cast send -vv ${USDC_CONTRACT} "approve(address spender, uint256 amount)" ${TSCONTRACT} 100000000  --private-key ${ADDRESSKEY}
+	cast send -vv ${USDC_CONTRACT} "approve(address spender, uint256 amount)" ${TSCONTRACT} 1000000000  --private-key ${ADDRESSKEY}
 
 approve-transferscheduler-weth:
 	@echo "Approving WETH TransferScheduler contract spending: ${TSCONTRACT}"
@@ -106,17 +69,10 @@ start-relay:
 start-webclient:
 	cd frontend && npm run dev & echo $$! >> $(PIDFILE)
 
-# TODO: remove not included 
-start-otterscan:
-	@echo "Starting otterscan"
-	(cd ../otterscan && (npm run start-devnet & echo $$! >> $(PIDFILE)) & echo $$! >> $(PIDFILE))
-
 test-contract:
 	forge clean && forge test -vvvvv --fork-url https://mainnet.base.org
 
-forked-base: start-anvil-base-fork transfer-usdc transfer-weth deploy-transferscheduler-contract approve-transferscheduler-usdc approve-transferscheduler-weth start-webclient start-relay start-otterscan
-
-local: start-anvil-local deploy-mock-usdc deploy-mock-weth deploy-transferscheduler-contract approve-transferscheduler-usdc approve-transferscheduler-weth start-webclient start-relay start-otterscan
+all: start-anvil-base-fork transfer-usdc transfer-weth deploy-transferscheduler-contract approve-transferscheduler-usdc approve-transferscheduler-weth start-webclient start-relay
 
 clean:
 	forge clean

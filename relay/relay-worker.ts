@@ -1,6 +1,6 @@
 import Web3 from 'web3';
 import * as fs from 'node:fs';
-import { TransferSchedulerContractAddress } from '../client/constants'
+import { TransferSchedulerContractAddress } from '../client-sdk/constants'
 
 async function main() {
 
@@ -10,7 +10,7 @@ async function main() {
     const address = accounts[3];
     console.log(`ETH balance for address index 0:`, await web3.eth.getBalance(address));
 
-    const transferSchedulerABI = JSON.parse(fs.readFileSync('../client/transferSchedulerABI.json', 'utf8'));
+    const transferSchedulerABI = JSON.parse(fs.readFileSync('../client-sdk/transferSchedulerABI.json', 'utf8'));
     const transferSchedulerContract = new web3.eth.Contract(transferSchedulerABI, TransferSchedulerContractAddress);
 
     const subscription = await transferSchedulerContract.events.TransferScheduled({

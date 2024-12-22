@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useAccount, useConnect, useDisconnect, useWatchContractEvent } from 'wagmi';
-import { QueueTransferTransaction } from './send-transaction';
+import { QueueTransferTransaction } from './SendTransaction';
 import { readContract } from '@wagmi/core';
 import { abi } from './abi';
 import { config } from './wagmi';
 import { TransferSchedulerContractAddress } from './constants'
 import { getContractEvents } from 'viem/actions';
+import { formatGwei } from 'viem'
 
 type QueuedTransferRecord = {
   nonce: bigint;
@@ -52,6 +53,25 @@ export async function getTokenSymbol(tokenAddress: `0x${string}`): Promise<strin
   }
 }
 
+export async function getTokenDecimals(tokenAddress: `0x${string}`): Promise<number> {
+  try {
+    const data = await readContract(config, {
+      address: tokenAddress,
+      abi: [{
+        name: 'decimals',
+        type: 'function',
+        stateMutability: 'view',
+        inputs: [],
+        outputs: [{ type: 'uint8' }],
+      }],
+      functionName: 'decimals',
+    }) as number;
+    return data;
+  } catch (error) {
+    console.error('Error fetching token decimals:', error);
+    return 18; // Default to 18 decimals if there's an error
+  }
+}
 
 
 const GetUncompletedTransfers = () => {
@@ -61,6 +81,7 @@ const GetUncompletedTransfers = () => {
   const [error, setError] = React.useState<Error | null>(null);
   const [updateTrigger, setUpdateTrigger] = React.useState(0);
   const [tokenSymbols, setTokenNames] = React.useState<Record<string, string>>({});
+  const [tokenDecimals, setTokenDecimals] = React.useState<Record<string, number>>({});
 
   useWatchContractEvent({
     address: TransferSchedulerContractAddress,
@@ -132,18 +153,29 @@ const GetUncompletedTransfers = () => {
   }, [transfers]);
 
   React.useEffect(() => {
-    async function fetchTokenSymbol() {
+    async function fetchTokenInfo() {
       if (!eventLogs) return;
 
       const newTokenSymbols: Record<string, string> = {};
+      const newTokenDecimals: Record<string, number> = {};
+
       for (const log of eventLogs) {
         if (!tokenSymbols[log.token]) {
-          newTokenSymbols[log.token] = await getTokenSymbol(log.token);
+          // Fetch both symbol and decimals concurrently
+          const [symbol, decimals] = await Promise.all([
+            getTokenSymbol(log.token),
+            getTokenDecimals(log.token)
+          ]);
+          newTokenSymbols[log.token] = symbol;
+          newTokenDecimals[log.token] = decimals;
         }
       }
+
       setTokenNames(prev => ({ ...prev, ...newTokenSymbols }));
+      setTokenDecimals(prev => ({ ...prev, ...newTokenDecimals }));
     }
-    fetchTokenSymbol();
+
+    fetchTokenInfo();
   }, [eventLogs]);
 
   if (error) {
@@ -176,6 +208,14 @@ const GetUncompletedTransfers = () => {
                         {key === 'token' ? (
                           <span title={value.toString()}>
                             {tokenSymbols[value.toString()] || value.toString()}
+                          </span>
+                        ) : key === 'amount' ? (
+                          <span title={value.toString()}>
+                            {(Number(value) / Math.pow(10, tokenDecimals[log.token] || 18)).toString()}
+                          </span>
+                        ) : key === 'maxBaseFee' ? (
+                          <span title={value.toString()}>
+                            {formatGwei(BigInt(value))}
                           </span>
                         ) : key === 'notBeforeDate' || key === 'notAfterDate' ? (
                           new Date(Number(value) * 1000).toLocaleString('en-US', {
@@ -211,6 +251,7 @@ const GetCompletedTransfers = () => {
   const [error, setError] = React.useState<Error | null>(null);
   const [updateTrigger, setUpdateTrigger] = React.useState(0);
   const [tokenSymbols, setTokenNames] = React.useState<Record<string, string>>({});
+  const [tokenDecimals, setTokenDecimals] = React.useState<Record<string, number>>({});
 
   useWatchContractEvent({
     address: TransferSchedulerContractAddress,
@@ -288,18 +329,28 @@ const GetCompletedTransfers = () => {
   }, [transfers]);
 
   React.useEffect(() => {
-    async function fetchTokenSymbol() {
+    async function fetchTokenInfo() {
 
       if (!eventLogs) return;
       const newTokenSymbols: Record<string, string> = {};
+      const newTokenDecimals: Record<string, number> = {};
+
       for (const log of eventLogs) {
         if (!tokenSymbols[log.token]) {
-          newTokenSymbols[log.token] = await getTokenSymbol(log.token);
+          // Fetch both symbol and decimals concurrently
+          const [symbol, decimals] = await Promise.all([
+            getTokenSymbol(log.token),
+            getTokenDecimals(log.token)
+          ]);
+          newTokenSymbols[log.token] = symbol;
+          newTokenDecimals[log.token] = decimals;
         }
       }
+
       setTokenNames(prev => ({ ...prev, ...newTokenSymbols }));
+      setTokenDecimals(prev => ({ ...prev, ...newTokenDecimals }));
     }
-    fetchTokenSymbol();
+    fetchTokenInfo();
   }, [eventLogs]);
 
 
@@ -335,6 +386,14 @@ const GetCompletedTransfers = () => {
                           <span title={value.toString()}>
                             {tokenSymbols[value.toString()] || value.toString()}
                           </span>
+                        ) : key === 'amount' ? (
+                          <span title={value.toString()}>
+                            {(Number(value) / Math.pow(10, tokenDecimals[log.token] || 18)).toString()}
+                          </span>
+                        ) : key === 'maxBaseFee' ? (
+                          <span title={value.toString()}>
+                            {formatGwei(BigInt(value))}
+                          </span>
                         ) : key === 'notBeforeDate' || key === 'notAfterDate' ? (
                           new Date(Number(value) * 1000).toLocaleString('en-US', {
                             year: 'numeric',
@@ -369,6 +428,7 @@ function App() {
   const [eventLogs, setEventLogs] = React.useState<TransferScheduledEventLogs | null>(null);
 
   const [tokenSymbols, setTokenNames] = React.useState<Record<string, string>>({});
+  const [tokenDecimals, setTokenDecimals] = React.useState<Record<string, number>>({});
 
 
 
@@ -387,18 +447,28 @@ function App() {
   })
 
   useEffect(() => {
-    async function fetchTokenSymbol() {
+    async function fetchTokenInfo() {
       if (!eventLogs) return;
 
       const newTokenSymbols: Record<string, string> = {};
+      const newTokenDecimals: Record<string, number> = {};
+
       for (const log of eventLogs) {
         if (!tokenSymbols[log.token]) {
-          newTokenSymbols[log.token] = await getTokenSymbol(log.token);
+          // Fetch both symbol and decimals concurrently
+          const [symbol, decimals] = await Promise.all([
+            getTokenSymbol(log.token),
+            getTokenDecimals(log.token)
+          ]);
+          newTokenSymbols[log.token] = symbol;
+          newTokenDecimals[log.token] = decimals;
         }
       }
+
       setTokenNames(prev => ({ ...prev, ...newTokenSymbols }));
+      setTokenDecimals(prev => ({ ...prev, ...newTokenDecimals }));
     }
-    fetchTokenSymbol();
+    fetchTokenInfo();
   }, [eventLogs]);
 
 
@@ -438,7 +508,6 @@ function App() {
         <>
 
           <div>
-            <h3>Queue Transfer Transaction</h3>
             <QueueTransferTransaction />
           </div>
 
@@ -467,6 +536,14 @@ function App() {
                             {key === 'token' ? (
                               <span title={value.toString()}>
                                 {tokenSymbols[value.toString()] || value.toString()}
+                              </span>
+                            ) : key === 'amount' ? (
+                              <span title={value.toString()}>
+                                {(Number(value) / Math.pow(10, tokenDecimals[log.token] || 18)).toString()}
+                              </span>
+                            ) : key === 'maxBaseFee' ? (
+                              <span title={value.toString()}>
+                                {formatGwei(BigInt(value))}
                               </span>
                             ) : key === 'notBeforeDate' || key === 'notAfterDate' ? (
                               new Date(Number(value) * 1000).toLocaleString('en-US', {

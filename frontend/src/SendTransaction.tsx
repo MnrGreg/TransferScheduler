@@ -9,8 +9,9 @@ import { signTypedData, writeContract, simulateContract, readContract } from '@w
 import { config } from './wagmi';
 import { abi } from './abi';
 import { TransferSchedulerContractAddress } from './constants'
-import { getTokenSymbol } from './App';
-import { formatGwei, formatEther, parseGwei, parseEther } from 'viem'
+import { getTokenSymbol, getTokenDecimals } from './App';
+import { formatGwei, formatEther, parseGwei } from 'viem'
+import { TokenAllowances } from './TokenAllowances';
 
 export function QueueTransferTransaction() {
     const { address, chainId } = useAccount();
@@ -22,6 +23,8 @@ export function QueueTransferTransaction() {
     const [relayGasTokenName, setRelayGasTokenName] = React.useState<string>('');
     const [relayGasCommissionPercentage, setRelayGasCommissionPercentage] = useState<number | null>(null);
     const [token, setToken] = React.useState<`0x${string}` | null>(null);
+    const [amount, setAmount] = useState<bigint | null>(null);
+    const [calculatedAmount, setCalculatedAmount] = useState<bigint | null>(null);
 
     const { data: gasPrice } = useGasPrice();
 
@@ -74,66 +77,61 @@ export function QueueTransferTransaction() {
         fetchRelayGasCommissionPercentage();
     }, []);
 
+    React.useEffect(() => {
+        async function calculateAmount() {
+            if (token && amount) {
+                try {
+                    const decimals = await getTokenDecimals(token);
+                    const calculated = BigInt(Math.floor(Number(amount) * Math.pow(10, decimals)));
+                    setCalculatedAmount(calculated !== undefined ? calculated : null);
+                } catch (error) {
+                    console.error('Error calculating amount with decimals:', error);
+                }
+            }
+        }
+        calculateAmount();
+    }, [token, amount]);
 
+    // queueTransfer gas currently ~75,000
     const relayCommissionTotal = relayGasCommissionPercentage !== null && gasPrice !== undefined
         ? BigInt(75000) * BigInt(relayGasCommissionPercentage) * gasPrice / BigInt(100)
         : BigInt(0);
-
-
-    const GetScheduledTransferContractAllowance = ({ token, amount }: { token: `0x${string}` | null, amount: bigint | null }) => {
-        const { address } = useAccount();
-        const [allowance, setAllowance] = React.useState<bigint | null>(null);
-
-        React.useEffect(() => {
-            if (!address || !token) return;
-
-            readContract(config, {
-                abi: [{
-                    name: 'allowance',
-                    type: 'function',
-                    stateMutability: 'view',
-                    inputs: [
-                        { name: 'owner', type: 'address' },
-                        { name: 'spender', type: 'address' },
-                    ],
-                    outputs: [{ type: 'uint256' }],
-                }],
-                address: token,
-                functionName: 'allowance',
-                args: [address, TransferSchedulerContractAddress],
-            })
-                .then(setAllowance)
-                .catch(console.error);
-        }, [address, token]);
-
-        const color = !allowance || !amount ? 'inherit'
-            : allowance < amount ? 'red'
-                : 'green';
-
-        return <div style={{ color }}>{allowance ? formatEther(allowance) : 'Loading...'}</div>;
-    };
 
     const handleTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const tokenAddress = e.target.value as `0x${string}`;
         setToken(tokenAddress);
     };
 
-    async function submit(e: React.FormEvent<HTMLFormElement>) {
-        e.preventDefault();
-        const formData = new FormData(e.target as HTMLFormElement);
+    const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
         const token = formData.get('token') as `0x${string}`;
         const to = formData.get('to') as `0x${string}`;
-        const amount = parseEther(formData.get('amount') as string);
-        const notBeforeDateInput = (e.target as HTMLFormElement).querySelector('input[name="notBeforeDate"]') as HTMLInputElement;
-        const notAfterDateInput = (e.target as HTMLFormElement).querySelector('input[name="notAfterDate"]') as HTMLInputElement;
+        const amountStr = formData.get('amount') as string;
+        const notBeforeDateInput = (event.currentTarget as HTMLFormElement).querySelector('input[name="notBeforeDate"]') as HTMLInputElement;
+        const notAfterDateInput = (event.currentTarget as HTMLFormElement).querySelector('input[name="notAfterDate"]') as HTMLInputElement;
         const notBeforeDate = Number(notBeforeDateInput.dataset.timestamp || '0');
         const notAfterDate = Number(notAfterDateInput.dataset.timestamp || '0');
+
+        setError(null);
+
+        // Get token decimals
+        let tokenDecimals;
+        try {
+            tokenDecimals = await getTokenDecimals(token);
+        } catch (error) {
+            console.error('Error reading token decimals:', error);
+            setError(new Error('Failed to read token decimals'));
+            return;
+        }
+
+        // Parse amount using token decimals
+        const amount = BigInt(Math.floor(Number(amountStr) * Math.pow(10, tokenDecimals)));
 
         if (!address) {
             setError(new Error('Address is required'));
             return;
         }
-        setError(null);
 
         if (!notBeforeDate || !notAfterDate || !amount || !chainId || !token || !to) {
             setError(new Error('All fields are required'));
@@ -167,7 +165,7 @@ export function QueueTransferTransaction() {
             setError(new Error(`Insufficient token allowance for spender: ${TransferSchedulerContractAddress}`));
             return;
         }
-        // TODO: link to token allowance increase button
+
         try {
             const signature = await signTypedData(config, {
                 domain: {
@@ -221,19 +219,24 @@ export function QueueTransferTransaction() {
         }
     }
 
-    //            
     return (
         <form onSubmit={submit}>
+            <TokenAllowances
+                transferToken={token}
+                transferAmount={calculatedAmount}
+                relayToken={relayGasToken}
+                relayAmount={relayCommissionTotal}
+            />
+            <h3>Queue Transfer Transaction</h3>
             <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #ccc', fontSize: '14px' }}>
                 <tbody>
                     <tr>
                         <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>token</th>
                         <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>amount</th>
-                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>allowance</th>
                         <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>to</th>
-                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>max Base Fee (gwei)</th>
-                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>not Before Date</th>
-                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>not After Date</th>
+                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>maxBaseFee</th>
+                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>notBeforeDate</th>
+                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>notAfterDate</th>
                     </tr>
                     <tr>
                         <td style={{ border: '1px solid #ccc' }}>
@@ -252,11 +255,10 @@ export function QueueTransferTransaction() {
                                 type="number"
                                 placeholder="0.00"
                                 style={{ width: '100px', border: 'none', padding: '8px', fontSize: '14px' }}
+                                value={amount !== null ? amount.toString() : ''}
+                                onChange={(e) => setAmount(e.target.value !== '' ? BigInt(e.target.value) : null)}
                                 required
                             />
-                        </td>
-                        <td style={{ border: '1px solid #ccc', padding: '8px' }}>
-                            <GetScheduledTransferContractAllowance token={token} amount={parseEther('0')} />
                         </td>
                         <td style={{ border: '1px solid #ccc' }}>
                             <input
@@ -307,15 +309,8 @@ export function QueueTransferTransaction() {
                         </td>
                     </tr>
                     <tr>
-                        <td style={{ border: '1px solid #ccc', padding: '8px' }}>
-                            <span title={relayGasToken || ''} style={{ fontSize: '14px' }}>
-                                {relayGasTokenName || 'Not set'}
-                            </span>
-                        </td>
-                        <td style={{ border: '1px solid #ccc', padding: '8px' }}>&lt; {formatEther(relayCommissionTotal)}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '8px' }}>
-                            <GetScheduledTransferContractAllowance token={relayGasToken} amount={relayCommissionTotal} />
-                        </td>
+                        <td style={{ border: '1px solid #ccc', padding: '8px' }}><span title={relayGasToken as string}>{relayGasTokenName}</span></td>
+                        <td style={{ border: '1px solid #ccc', padding: '8px' }}>{formatEther(relayCommissionTotal)}</td>
                         <td style={{ border: '1px solid #ccc', padding: '8px' }}>relay fee = block.basefee * gas (75k) * relay commission ({relayGasCommissionPercentage}%)</td>
                         <td style={{ border: '1px solid #ccc', padding: '8px' }}>
                             {maxBaseFee ? `${maxBaseFee}` : '-'}
