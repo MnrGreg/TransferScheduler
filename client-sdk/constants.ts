@@ -1,1 +1,0 @@
-export const TransferSchedulerContractAddress = '0x1176B701D99970F54eafa667725d01900f276732';

@@ -49,7 +49,9 @@ async function main() {
                 try {
                     // Simulate contract execution with eth_call first
                     await transferSchedulerContract.methods.executeScheduledTransfer(ScheduledTransfer, signature).call({
-                        from: address
+                        from: address,
+                        // maxPriorityFeePerGas: web3.utils.toHex(web3.utils.toWei('0.1', 'gwei')),
+                        // maxFeePerGas: web3.utils.toHex(web3.utils.toWei('0.9', 'gwei')),
                     });
                     console.log('Contract simulation successful for Nonce:', nonce);
                     isCallSuccessful = true;
@@ -60,8 +62,9 @@ async function main() {
                 }
             }
 
+            //TODO: Fine tune max gas fee
             const tx = await transferSchedulerContract.methods.executeScheduledTransfer(ScheduledTransfer, signature).send({
-                from: address
+                from: address,
             });
             console.log("Transfer executed for Nonce:", nonce, "TxHash:", tx.transactionHash);
 

@@ -51,8 +51,8 @@ deploy-transferscheduler-contract:
 		| sed -e 's/.*address //g'))
 	@echo "Deployed TransferScheduler contract behind proxy address: ${TSCONTRACT}"
 	forge inspect contracts/src/TransferSchedulerV1.sol:TransferSchedulerV1 abi > ./client-sdk/transferSchedulerABI.json
-	sed -i '' -e "s/'.*';/'${TSCONTRACT}';/" client-sdk/constants.ts
-	sed -i '' -e "s/'.*';/'${TSCONTRACT}';/" frontend/src/constants.ts
+	sed -i '' -e "s/'0x.*';/'${TSCONTRACT}';/" client-sdk/src/constants.ts
+	sed -i '' -e "s/'0x.*';/'${TSCONTRACT}';/" frontend/src/constants.ts
 
 approve-transferscheduler-usdc:
 	@echo "Approving USDC TransferScheduler contract spending: ${TSCONTRACT}"

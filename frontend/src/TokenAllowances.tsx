@@ -140,13 +140,13 @@ const TokenAllowanceRow = ({ token, amount, label }: TokenAllowanceRowProps) => 
 export function TokenAllowances({
     transferToken,
     transferAmount,
-    relayToken,
-    relayAmount
+    gasToken,
+    gasAmount
 }: {
     transferToken: `0x${string}` | null;
     transferAmount: bigint | null;
-    relayToken: `0x${string}` | null;
-    relayAmount: bigint | null;
+    gasToken: `0x${string}` | null;
+    gasAmount: bigint | null;
 }) {
     return (
         <div style={{ marginTop: '16px', marginBottom: '16px' }}>
@@ -173,8 +173,8 @@ export function TokenAllowances({
                         label="Transfer Token"
                     />
                     <TokenAllowanceRow
-                        token={relayToken}
-                        amount={relayAmount}
+                        token={gasToken}
+                        amount={gasAmount}
                         label="Relay Gas Token"
                     />
                 </tbody>

@@ -17,7 +17,7 @@ TSKEY=0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
 PRIVATE_KEY=0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
 
 ANVILCCREATE2=0x4e59b44847b379578588920ca78fbf26c0b4956c
-TSCONTRACT=0xa631BEb88aBb91e32A2A6c5D338113aCcA158baA
+TSCONTRACT=0x1176B701D99970F54eafa667725d01900f276732
 
 
 forge inspect contracts/src/TransferSchedulerV1.sol:TransferSchedulerV1 abi > ./client/transferSchedulerABI.json
@@ -50,7 +50,11 @@ forge inspect contracts/src/transferSchedulerV1.sol:TransferSchedulerV1 errors -
 cast call -v $USDC_CONTRACT "allowance(address owner, address spender)" $ADDRESS $TSCONTRACT
 cast call -v $WETH_CONTRACT "allowance(address owner, address spender)" $ADDRESS $TSCONTRACT
 
-  
+# Approve TransferScheduler contract to spend behalf of address
+cast send -vv $WETH_CONTRACT "approve(address spender, uint256 amount)" $TSCONTRACT 5000000000000000000  \
+    --private-key $ADDRESSKEY
+cast send -vv $USDC_CONTRACT "approve(address spender, uint256 amount)" $TSCONTRACT 50000000000000000000000  \
+    --private-key $ADDRESSKEY  
 
 # QueueTransfer
 cast send -v --private-key $ADDRESSKEY $TSCONTRACT "queueScheduledTransfer(address,uint256,address,address,uint256,uint256,uint256,uint256,bytes)" \

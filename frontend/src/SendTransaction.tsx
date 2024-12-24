@@ -13,6 +13,7 @@ import { getTokenSymbol, getTokenDecimals } from './App';
 import { formatGwei, formatEther, parseGwei } from 'viem'
 import { TokenAllowances } from './TokenAllowances';
 
+
 export function QueueTransferTransaction() {
     const { address, chainId } = useAccount();
     const [hash, setHash] = useState<`0x${string}` | undefined>();
@@ -221,13 +222,7 @@ export function QueueTransferTransaction() {
 
     return (
         <form onSubmit={submit}>
-            <TokenAllowances
-                transferToken={token}
-                transferAmount={calculatedAmount}
-                relayToken={relayGasToken}
-                relayAmount={relayCommissionTotal}
-            />
-            <h3>Queue Transfer Transaction</h3>
+            <h3>Queue Transfer Transaction on-chain</h3>
             <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #ccc', fontSize: '14px' }}>
                 <tbody>
                     <tr>
@@ -263,7 +258,7 @@ export function QueueTransferTransaction() {
                         <td style={{ border: '1px solid #ccc' }}>
                             <input
                                 name="to"
-                                placeholder="(address)"
+                                placeholder="0x..."
                                 style={{ width: '330px', border: 'none', padding: '8px', fontSize: '14px' }}
                                 required
                             />
@@ -331,6 +326,12 @@ export function QueueTransferTransaction() {
             {isConfirming && <div>Waiting for confirmation...</div>}
             {isConfirmed && <div>Transaction confirmed.</div>}
             {error && <div>Error: {error.message}</div>}
+            <TokenAllowances
+                transferToken={token}
+                transferAmount={calculatedAmount}
+                gasToken={relayGasToken}
+                gasAmount={relayCommissionTotal}
+            />
         </form>
 
     );

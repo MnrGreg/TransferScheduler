@@ -38,14 +38,13 @@ contract TransferSchedulerV1 is IScheduledTransfer, EIP712Upgradeable, UUPSUpgra
         relayGasCommissionPercentage = _relayGasCommissionPercentage;
     }
 
-    // ! TODO: add authorization!!!
     function _authorizeUpgrade(address _newImplementation) internal override onlyOwner {}
 
     // * dApps can query the queue for a particular wallet address and show future transfers
     // * relays can query onchain
     struct addressNonceRecord {
         uint40 blockNumber;
-        bool completed;
+        bool completed; //TODO: consider changing to include cancelled
         bool exists;
     }
 
@@ -84,10 +83,6 @@ contract TransferSchedulerV1 is IScheduledTransfer, EIP712Upgradeable, UUPSUpgra
         uint40 _maxBaseFee,
         bytes calldata _signature
     ) public {
-        // transfers[_wallet][_nonce].blockNumber = block.number;
-        // transfers[_wallet][_nonce].completed = false;
-        // transfers[_wallet][_nonce].exists = true;
-
         if (!transfers[_wallet][_nonce].exists) {
             addressNonceIndices[_wallet].push(_nonce);
         }
@@ -173,7 +168,7 @@ contract TransferSchedulerV1 is IScheduledTransfer, EIP712Upgradeable, UUPSUpgra
         }
 
         uint256 spenderGasTokenAllowance = ERC20(relayGasToken).allowance(scheduledTransferDetails.owner, address(this));
-        if (block.basefee * 100000 * (1 + relayGasCommissionPercentage / 100) > spenderGasTokenAllowance) {
+        if (block.basefee * 140000 * (1 + relayGasCommissionPercentage / 100) > spenderGasTokenAllowance) {
             revert InsufficientGasTokenAllowance(spenderGasTokenAllowance);
         }
 
@@ -193,12 +188,11 @@ contract TransferSchedulerV1 is IScheduledTransfer, EIP712Upgradeable, UUPSUpgra
                 ERC20(relayGasToken).safeTransferFrom(
                     scheduledTransferDetails.owner,
                     msg.sender,
-                    block.basefee * 100000 * (1 + relayGasCommissionPercentage / 100)
+                    block.basefee * 140000 * (1 + relayGasCommissionPercentage / 100)
                 );
             }
         }
 
-        // TODO: adds 30k Gas,consider removing in place of relays checking state - lots of historical transfers may add overhead
         // If ScheduledTransefer was queued on-chain, update on-chain state to .completed=true and emit event
         if (transfers[scheduledTransferDetails.owner][scheduledTransferDetails.nonce].exists == true) {
             transfers[scheduledTransferDetails.owner][scheduledTransferDetails.nonce].completed = true;

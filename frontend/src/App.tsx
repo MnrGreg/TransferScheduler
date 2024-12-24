@@ -8,12 +8,10 @@ import { TransferSchedulerContractAddress } from './constants'
 import { getContractEvents } from 'viem/actions';
 import { formatGwei } from 'viem'
 
-type QueuedTransferRecord = {
+type QueuedTransferRecords = {
   nonce: bigint;
   blockNumber: number;
-};
-
-type QueuedTransferRecords = QueuedTransferRecord[];
+}[];
 
 type TransferScheduledEventLog = {
   owner: `0x${string}`; // address type in TypeScript for Ethereum
