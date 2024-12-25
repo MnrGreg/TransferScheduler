@@ -3,26 +3,9 @@ import { useAccount, useConnect, useDisconnect, useWatchContractEvent } from 'wa
 import { QueueTransferTransaction } from './SendTransaction';
 import { readContract } from '@wagmi/core';
 import { config } from './wagmi';
-import { TransferSchedulerContractAddress, transferSchedulerABI } from 'transfer-scheduler-sdk';
+import { TransferSchedulerContractAddress, transferSchedulerABI, QueuedTransferRecords, TransferScheduledEventLog } from 'transfer-scheduler-sdk';
 import { getContractEvents } from 'viem/actions';
 import { formatGwei } from 'viem'
-
-type QueuedTransferRecords = {
-  nonce: bigint;
-  blockNumber: number;
-}[];
-
-type TransferScheduledEventLog = {
-  owner: `0x${string}`; // address type in TypeScript for Ethereum
-  nonce: bigint;        // uint96
-  token: `0x${string}`; // address
-  to: `0x${string}`;    // address
-  amount: bigint;       // uint128
-  notBeforeDate: number; // uint40
-  notAfterDate: number;  // uint40
-  maxBaseFee: number;    // uint40
-  signature: `0x${string}`; // bytes
-};
 
 type TransferScheduledEventLogs = TransferScheduledEventLog[];
 
@@ -573,7 +556,7 @@ function App() {
           </div>
 
           <div>
-            <h3>Contract State: getTransfers(complete=true)</h3>
+            <h3>Contract State: getTransfers(complete=true).</h3>
             <GetCompletedTransfers />
           </div>
         </>
