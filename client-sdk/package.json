@@ -7,7 +7,7 @@
         "watch": "tsc -w",
         "test": "vitest"
     },
-    "types": "dist/src/index.d.ts",
+    "types": "dist/index.d.ts",
     "dependencies": {
         "web3": "^4.1.2"
     },

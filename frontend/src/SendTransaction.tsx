@@ -7,8 +7,7 @@ import {
 import { types } from './ScheduledTransferTypedData';
 import { signTypedData, writeContract, simulateContract, readContract } from '@wagmi/core';
 import { config } from './wagmi';
-import { abi } from './abi';
-import { TransferSchedulerContractAddress } from './constants'
+import { TransferSchedulerContractAddress, transferSchedulerABI } from 'transfer-scheduler-sdk';
 import { getTokenSymbol, getTokenDecimals } from './App';
 import { formatGwei, formatEther, parseGwei } from 'viem'
 import { TokenAllowances } from './TokenAllowances';
@@ -42,7 +41,7 @@ export function QueueTransferTransaction() {
     const fetchRelayGasToken = async () => {
         try {
             const token = await readContract(config, {
-                abi,
+                abi: transferSchedulerABI,
                 address: TransferSchedulerContractAddress,
                 functionName: 'getGasToken',
             }) as `0x${string}`;
@@ -64,7 +63,7 @@ export function QueueTransferTransaction() {
     const fetchRelayGasCommissionPercentage = async () => {
         try {
             const percentage = await readContract(config, {
-                abi,
+                abi: transferSchedulerABI,
                 address: TransferSchedulerContractAddress,
                 functionName: 'getGasCommissionPercentage',
             });
@@ -192,7 +191,7 @@ export function QueueTransferTransaction() {
             setIsPending(true);
 
             const { request } = await simulateContract(config, {
-                abi,
+                abi: transferSchedulerABI,
                 address: TransferSchedulerContractAddress,
                 functionName: 'queueScheduledTransfer',
                 args: [

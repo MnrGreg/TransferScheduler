@@ -55,14 +55,6 @@ deploy-transferscheduler-contract:
 	sed -i '' -e "s/TransferSchedulerContractAddress = '.*';/TransferSchedulerContractAddress = '${TSCONTRACT}';/" client-sdk/src/constants.ts
 	sed -i '' -e "s/TransferSchedulerContractAddress = '.*';/TransferSchedulerContractAddress = '${TSCONTRACT}';/" frontend/src/constants.ts
 
-# approve-transferscheduler-usdc:
-# 	@echo "Approving USDC TransferScheduler contract spending: ${TSCONTRACT}"
-# 	cast send -vv ${USDC_CONTRACT} "approve(address spender, uint256 amount)" ${TSCONTRACT} 990000000  --private-key ${ADDRESSKEY}
-
-# approve-transferscheduler-weth:
-# 	@echo "Approving WETH TransferScheduler contract spending: ${TSCONTRACT}"
-# 	cast send -vv ${WETH_CONTRACT} "approve(address spender, uint256 amount)" ${TSCONTRACT} 1000000000000000000  --private-key ${ADDRESSKEY}
-
 build-client-sdk:
 	cd client-sdk && npm run build
 

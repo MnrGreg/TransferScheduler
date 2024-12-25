@@ -1,4 +1,4 @@
-export const TransferSchedulerContractAddress = '0x27481fE1C63Cb6edaD59D0Cd65E95cA5676dc9eb'; // Replace with actual address
+export const TransferSchedulerContractAddress = '0x9A49A57903B1D001353e521f9236F19EC54d3143'; // Replace with actual address
 
 
 export const transferSchedulerABI = [
@@ -11,30 +11,6 @@ export const transferSchedulerABI = [
                 "name": "",
                 "type": "string",
                 "internalType": "string"
-            }
-        ],
-        "stateMutability": "view"
-    },
-    {
-        "type": "function",
-        "name": "addressNonceIndices",
-        "inputs": [
-            {
-                "name": "",
-                "type": "address",
-                "internalType": "address"
-            },
-            {
-                "name": "",
-                "type": "uint256",
-                "internalType": "uint256"
-            }
-        ],
-        "outputs": [
-            {
-                "name": "",
-                "type": "uint96",
-                "internalType": "uint96"
             }
         ],
         "stateMutability": "view"
@@ -192,7 +168,7 @@ export const transferSchedulerABI = [
             {
                 "name": "",
                 "type": "tuple[]",
-                "internalType": "struct TransferSchedulerV1.QueuedTransferRecord[]",
+                "internalType": "struct TransferSchedulerV2.QueuedTransferRecord[]",
                 "components": [
                     {
                         "name": "nonce",
@@ -226,30 +202,6 @@ export const transferSchedulerABI = [
         ],
         "outputs": [],
         "stateMutability": "nonpayable"
-    },
-    {
-        "type": "function",
-        "name": "nonceBitmap",
-        "inputs": [
-            {
-                "name": "",
-                "type": "address",
-                "internalType": "address"
-            },
-            {
-                "name": "",
-                "type": "uint256",
-                "internalType": "uint256"
-            }
-        ],
-        "outputs": [
-            {
-                "name": "",
-                "type": "uint256",
-                "internalType": "uint256"
-            }
-        ],
-        "stateMutability": "view"
     },
     {
         "type": "function",

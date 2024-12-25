@@ -15,7 +15,8 @@
     "react-dom": "^18.3.1",
     "react-native-securerandom": "^1.0.1",
     "viem": "latest",
-    "wagmi": "latest"
+    "wagmi": "latest",
+    "transfer-scheduler-sdk": "../client-sdk"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.8.0",

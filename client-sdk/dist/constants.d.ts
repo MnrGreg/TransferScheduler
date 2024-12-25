@@ -1,4 +1,4 @@
-export declare const TransferSchedulerContractAddress = "0x27481fE1C63Cb6edaD59D0Cd65E95cA5676dc9eb";
+export declare const TransferSchedulerContractAddress = "0x9A49A57903B1D001353e521f9236F19EC54d3143";
 export declare const transferSchedulerABI: readonly [{
     readonly type: "function";
     readonly name: "UPGRADE_INTERFACE_VERSION";
@@ -7,24 +7,6 @@ export declare const transferSchedulerABI: readonly [{
         readonly name: "";
         readonly type: "string";
         readonly internalType: "string";
-    }];
-    readonly stateMutability: "view";
-}, {
-    readonly type: "function";
-    readonly name: "addressNonceIndices";
-    readonly inputs: readonly [{
-        readonly name: "";
-        readonly type: "address";
-        readonly internalType: "address";
-    }, {
-        readonly name: "";
-        readonly type: "uint256";
-        readonly internalType: "uint256";
-    }];
-    readonly outputs: readonly [{
-        readonly name: "";
-        readonly type: "uint96";
-        readonly internalType: "uint96";
     }];
     readonly stateMutability: "view";
 }, {
@@ -147,7 +129,7 @@ export declare const transferSchedulerABI: readonly [{
     readonly outputs: readonly [{
         readonly name: "";
         readonly type: "tuple[]";
-        readonly internalType: "struct TransferSchedulerV1.QueuedTransferRecord[]";
+        readonly internalType: "struct TransferSchedulerV2.QueuedTransferRecord[]";
         readonly components: readonly [{
             readonly name: "nonce";
             readonly type: "uint96";
@@ -173,24 +155,6 @@ export declare const transferSchedulerABI: readonly [{
     }];
     readonly outputs: readonly [];
     readonly stateMutability: "nonpayable";
-}, {
-    readonly type: "function";
-    readonly name: "nonceBitmap";
-    readonly inputs: readonly [{
-        readonly name: "";
-        readonly type: "address";
-        readonly internalType: "address";
-    }, {
-        readonly name: "";
-        readonly type: "uint256";
-        readonly internalType: "uint256";
-    }];
-    readonly outputs: readonly [{
-        readonly name: "";
-        readonly type: "uint256";
-        readonly internalType: "uint256";
-    }];
-    readonly stateMutability: "view";
 }, {
     readonly type: "function";
     readonly name: "owner";

@@ -2,9 +2,8 @@ import React, { useEffect } from 'react';
 import { useAccount, useConnect, useDisconnect, useWatchContractEvent } from 'wagmi';
 import { QueueTransferTransaction } from './SendTransaction';
 import { readContract } from '@wagmi/core';
-import { abi } from './abi';
 import { config } from './wagmi';
-import { TransferSchedulerContractAddress } from './constants'
+import { TransferSchedulerContractAddress, transferSchedulerABI } from 'transfer-scheduler-sdk';
 import { getContractEvents } from 'viem/actions';
 import { formatGwei } from 'viem'
 
@@ -83,14 +82,14 @@ const GetUncompletedTransfers = () => {
 
   useWatchContractEvent({
     address: TransferSchedulerContractAddress,
-    abi,
+    abi: transferSchedulerABI,
     eventName: 'TransferScheduled',
     onLogs: () => setUpdateTrigger(prev => prev + 1),
   });
 
   useWatchContractEvent({
     address: TransferSchedulerContractAddress,
-    abi,
+    abi: transferSchedulerABI,
     eventName: 'TransferExecuted',
     onLogs: () => setUpdateTrigger(prev => prev + 1),
   });
@@ -100,7 +99,7 @@ const GetUncompletedTransfers = () => {
       if (address) {
         try {
           const transfersResult = await readContract(config, {
-            abi,
+            abi: transferSchedulerABI,
             address: TransferSchedulerContractAddress,
             functionName: 'getScheduledTransfers',
             args: [address, false],
@@ -129,7 +128,7 @@ const GetUncompletedTransfers = () => {
         const blockNumber = transfer.blockNumber.toString();
         const logs = await getContractEvents(config.getClient(), {
           address: TransferSchedulerContractAddress,
-          abi,
+          abi: transferSchedulerABI,
           eventName: 'TransferScheduled',
           args: {
             owner: address,
@@ -253,7 +252,7 @@ const GetCompletedTransfers = () => {
 
   useWatchContractEvent({
     address: TransferSchedulerContractAddress,
-    abi,
+    abi: transferSchedulerABI,
     eventName: 'TransferScheduled',
     args: {
       owner: address
@@ -263,7 +262,7 @@ const GetCompletedTransfers = () => {
 
   useWatchContractEvent({
     address: TransferSchedulerContractAddress,
-    abi,
+    abi: transferSchedulerABI,
     eventName: 'TransferExecuted',
     args: {
       owner: address
@@ -276,7 +275,7 @@ const GetCompletedTransfers = () => {
       if (address) {
         try {
           const transfersResult = await readContract(config, {
-            abi,
+            abi: transferSchedulerABI,
             address: TransferSchedulerContractAddress,
             functionName: 'getScheduledTransfers',
             args: [address, true],
@@ -305,7 +304,7 @@ const GetCompletedTransfers = () => {
         const blockNumber = transfer.blockNumber.toString();
         const logs = await getContractEvents(config.getClient(), {
           address: TransferSchedulerContractAddress,
-          abi,
+          abi: transferSchedulerABI,
           eventName: 'TransferScheduled',
           args: {
             owner: address,
@@ -433,7 +432,7 @@ function App() {
   const transferScheduledEventLogs: TransferScheduledEventLog[] = [];
   useWatchContractEvent({
     address: TransferSchedulerContractAddress,
-    abi,
+    abi: transferSchedulerABI,
     eventName: 'TransferScheduled',
     args: {
       owner: address

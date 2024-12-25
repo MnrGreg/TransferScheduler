@@ -2,7 +2,7 @@ import React from 'react';
 import { useAccount } from 'wagmi';
 import { readContract, simulateContract, writeContract } from '@wagmi/core';
 import { config } from './wagmi';
-import { TransferSchedulerContractAddress } from './constants';
+import { TransferSchedulerContractAddress } from 'transfer-scheduler-sdk';
 
 interface TokenAllowanceRowProps {
     token: `0x${string}` | null;
