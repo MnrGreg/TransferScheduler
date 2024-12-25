@@ -50,13 +50,13 @@ contract TransferSchedulerTest is Test {
     //uint256 notBeforeDate = 1704088622; // 01/01/2024
     uint40 notBeforeDate = 0;
     uint40 notAfterDate = 1767247022; // 01/01/2026
-    uint40 maxBaseFee = 2000000; // 0.2 wei
+    uint40 maxBaseFee = 8000000;
     uint96 nonce = 23143254;
     bytes signature;
 
     function setUp() public {
         // set basefee
-        vm.fee(800000);
+        vm.fee(8000000);
 
         address proxy = Upgrades.deployUUPSProxy(
             "TransferSchedulerV1.sol",
@@ -150,12 +150,12 @@ contract TransferSchedulerTest is Test {
         console.log("owner gasToken balance: less", block.basefee * 100000 * (1 + relayGasCommissionPercentage / 100));
         assertEq(
             gasToken.balanceOf(owner),
-            startBalanceFrom1 - block.basefee * 100000 * (1 + relayGasCommissionPercentage / 100)
+            startBalanceFrom1 - block.basefee * 140000 * (1 + relayGasCommissionPercentage / 100)
         );
         assertEq(token0.balanceOf(recipientAddress), startBalanceTo0 + amount);
         assertEq(
             gasToken.balanceOf(relayAddress),
-            startBalanceTo1 + block.basefee * 100000 * (1 + relayGasCommissionPercentage / 100)
+            startBalanceTo1 + block.basefee * 140000 * (1 + relayGasCommissionPercentage / 100)
         );
     }
 

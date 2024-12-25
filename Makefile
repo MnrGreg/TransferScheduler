@@ -25,7 +25,8 @@ stop:
 	fi
 
 start-anvil-base-fork: stop
-	anvil --chain-id 31337 --block-time 30 --fork-url https://mainnet.base.org & echo $$! >> $(PIDFILE)
+	anvil --chain-id 31337 --block-time 30 --gas-price 1000000000  \
+	--fork-url https://mainnet.base.org & echo $$! >> $(PIDFILE)
 	sleep 10
 
 # Transfer USDC when using forked chain
@@ -51,28 +52,34 @@ deploy-transferscheduler-contract:
 		| sed -e 's/.*address //g'))
 	@echo "Deployed TransferScheduler contract behind proxy address: ${TSCONTRACT}"
 	forge inspect contracts/src/TransferSchedulerV1.sol:TransferSchedulerV1 abi > ./client-sdk/transferSchedulerABI.json
-	sed -i '' -e "s/'0x.*';/'${TSCONTRACT}';/" client-sdk/src/constants.ts
-	sed -i '' -e "s/'0x.*';/'${TSCONTRACT}';/" frontend/src/constants.ts
+	sed -i '' -e "s/TransferSchedulerContractAddress = '.*';/TransferSchedulerContractAddress = '${TSCONTRACT}';/" client-sdk/src/constants.ts
+	sed -i '' -e "s/TransferSchedulerContractAddress = '.*';/TransferSchedulerContractAddress = '${TSCONTRACT}';/" frontend/src/constants.ts
 
-approve-transferscheduler-usdc:
-	@echo "Approving USDC TransferScheduler contract spending: ${TSCONTRACT}"
-	cast send -vv ${USDC_CONTRACT} "approve(address spender, uint256 amount)" ${TSCONTRACT} 1000000000  --private-key ${ADDRESSKEY}
+# approve-transferscheduler-usdc:
+# 	@echo "Approving USDC TransferScheduler contract spending: ${TSCONTRACT}"
+# 	cast send -vv ${USDC_CONTRACT} "approve(address spender, uint256 amount)" ${TSCONTRACT} 990000000  --private-key ${ADDRESSKEY}
 
-approve-transferscheduler-weth:
-	@echo "Approving WETH TransferScheduler contract spending: ${TSCONTRACT}"
-	cast send -vv ${WETH_CONTRACT} "approve(address spender, uint256 amount)" ${TSCONTRACT} 1000000000000000000  --private-key ${ADDRESSKEY}
+# approve-transferscheduler-weth:
+# 	@echo "Approving WETH TransferScheduler contract spending: ${TSCONTRACT}"
+# 	cast send -vv ${WETH_CONTRACT} "approve(address spender, uint256 amount)" ${TSCONTRACT} 1000000000000000000  --private-key ${ADDRESSKEY}
+
+build-client-sdk:
+	cd client-sdk && npm run build
 
 start-relay: 
 	@echo "Starting relay"
-	cd relay && (ts-node relay-worker.ts & echo $$! >> $(PIDFILE))
+	cd relay && (RPC_URL=ws://localhost:8545 ts-node relay-worker.ts & echo $$! >> ../$(PIDFILE))
 
 start-webclient:
-	cd frontend && npm run dev & echo $$! >> $(PIDFILE)
+	cd frontend && (npm run dev & echo $$! >> ../$(PIDFILE))
+
+start-example-app:
+	cd client-sdk/example-app && (ts-node index.ts & echo $$! >> ../$(PIDFILE))
 
 test-contract:
 	forge clean && forge test -vvvvv --fork-url https://mainnet.base.org
 
-all: start-anvil-base-fork transfer-usdc transfer-weth deploy-transferscheduler-contract approve-transferscheduler-usdc approve-transferscheduler-weth start-webclient start-relay
+all: start-anvil-base-fork transfer-usdc transfer-weth deploy-transferscheduler-contract build-client-sdk start-relay start-webclient start-example-app
 
 clean:
 	forge clean

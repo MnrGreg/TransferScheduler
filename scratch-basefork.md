@@ -17,7 +17,7 @@ TSKEY=0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
 PRIVATE_KEY=0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
 
 ANVILCCREATE2=0x4e59b44847b379578588920ca78fbf26c0b4956c
-TSCONTRACT=0x1176B701D99970F54eafa667725d01900f276732
+TSCONTRACT=0x27481fE1C63Cb6edaD59D0Cd65E95cA5676dc9eb
 
 
 forge inspect contracts/src/TransferSchedulerV1.sol:TransferSchedulerV1 abi > ./client/transferSchedulerABI.json
@@ -27,33 +27,15 @@ forge inspect contracts/src/transferSchedulerV1.sol:TransferSchedulerV1 storage 
 forge inspect contracts/src/transferSchedulerV1.sol:TransferSchedulerV1 methods --pretty
 forge inspect contracts/src/transferSchedulerV1.sol:TransferSchedulerV1 errors --pretty
 
-```json
-{
-  "InsufficientGasTokenAllowance(uint256)": "476e5fcf",
-  "InsufficientTokenAllowance(uint256)": "b356ab6d",
-  "InvalidAmount(uint256)": "3728b83d",
-  "InvalidContractSignature()": "b0669cbc",
-  "InvalidNonce()": "756688fe",
-  "InvalidShortString()": "b3512b0c",
-  "InvalidSignature()": "8baa579f",
-  "InvalidSignatureLength()": "4be6321b",
-  "InvalidSigner()": "815e1d64",
-  "LengthMismatch()": "ff633a38",
-  "MaxBaseFeeExceeded(uint256,uint256)": "05ff4f5d",
-  "StringTooLong(string)": "305a27a9",
-  "TransferTooEarly(uint256)": "3d52d1a6",
-  "TransferTooLate(uint256)": "841ad5ab"
-}
-```
 
 # Check TransferScheduler spender balance on address funds
 cast call -v $USDC_CONTRACT "allowance(address owner, address spender)" $ADDRESS $TSCONTRACT
 cast call -v $WETH_CONTRACT "allowance(address owner, address spender)" $ADDRESS $TSCONTRACT
 
 # Approve TransferScheduler contract to spend behalf of address
-cast send -vv $WETH_CONTRACT "approve(address spender, uint256 amount)" $TSCONTRACT 5000000000000000000  \
+cast send -vv $WETH_CONTRACT "approve(address spender, uint256 amount)" $TSCONTRACT 50000000000000000000  \
     --private-key $ADDRESSKEY
-cast send -vv $USDC_CONTRACT "approve(address spender, uint256 amount)" $TSCONTRACT 50000000000000000000000  \
+cast send -vv $USDC_CONTRACT "approve(address spender, uint256 amount)" $TSCONTRACT 99000000  \
     --private-key $ADDRESSKEY  
 
 # QueueTransfer
@@ -119,16 +101,6 @@ cast logs --from-block 89 --to-block latest  --address $TSCONTRACT
 cast create2 --starts-with feed
 
 
-
-
-
-export ADDRESS=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-export USDC_CONTRACT=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
-export USDC_HOLDER=0x0B0A5886664376F59C351ba3f598C8A8B4D0A6f3
-export WETH_CONTRACT=0x4200000000000000000000000000000000000006
-export TSCONTRACT=0xa631BEb88aBb91e32A2A6c5D338113aCcA158baA
-export ADDRESSKEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-
 cast rpc anvil_setBalance ${ADDRESS} 10000000000000000000
 cast rpc anvil_impersonateAccount ${USDC_HOLDER}
 cast send --from ${USDC_HOLDER} ${USDC_CONTRACT} "transfer(address,uint256)(bool)" ${ADDRESS} 100000000000 --unlocked
@@ -142,3 +114,17 @@ cast rpc eth_chainId
 anvil_setChainId
 
 cast rpc eth_getBalance "${ADDRESS}" "latest"
+
+cast rpc eth_feeHistory "4" "4" "4"
+
+cast basefee  
+cast gas-price # current gas price in Wei (BaseFee + Tip)
+
+cast rpc anvil_setMinGasPrice
+cast rpc anvil_setNextBlockBaseFeePerGas
+
+
+
+cast rpc eth_gasPrice
+
+cast rpc eth_feeHistory '[1, "latest", []]'

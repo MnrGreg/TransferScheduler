@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity 0.8.27;
 
 import {IScheduledTransfer} from "./interfaces/IScheduledTransfer.sol";
 
@@ -178,19 +178,16 @@ contract TransferSchedulerV1 is IScheduledTransfer, EIP712Upgradeable, UUPSUpgra
 
         SignatureVerification.verify(signature, hashed, scheduledTransferDetails.owner);
 
-        unchecked {
-            if (scheduledTransferDetails.amount != 0) {
-                // allow spender to specify which of the permitted tokens should be transferred
-                ERC20(scheduledTransferDetails.token).safeTransferFrom(
-                    scheduledTransferDetails.owner, scheduledTransferDetails.to, scheduledTransferDetails.amount
-                );
-                // Refund relay for transaction (100k gas usage) and add commission in gas
-                ERC20(relayGasToken).safeTransferFrom(
-                    scheduledTransferDetails.owner,
-                    msg.sender,
-                    block.basefee * 140000 * (1 + relayGasCommissionPercentage / 100)
-                );
-            }
+        if (scheduledTransferDetails.amount != 0) {
+            ERC20(scheduledTransferDetails.token).safeTransferFrom(
+                scheduledTransferDetails.owner, scheduledTransferDetails.to, scheduledTransferDetails.amount
+            );
+            // Refund relay for transaction (140k gas usage) and add commission in gas
+            ERC20(relayGasToken).safeTransferFrom(
+                scheduledTransferDetails.owner,
+                msg.sender,
+                block.basefee * 140000 * (1 + relayGasCommissionPercentage / 100)
+            );
         }
 
         // If ScheduledTransefer was queued on-chain, update on-chain state to .completed=true and emit event

@@ -12,13 +12,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: true
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
 
       - name: Run tests
-        run: forge test -vvvvv --fork-url https://mainnet.base.org
+        run: |
+          pwd
+          tree ./contracts -L 3
+          forge test -vvvvv --fork-url https://mainnet.base.org
 
       - name: Run snapshot
         run: forge snapshot

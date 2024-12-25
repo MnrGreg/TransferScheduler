@@ -1,4 +1,4 @@
-export declare const TransferSchedulerContractAddress = "0x1176B701D99970F54eafa667725d01900f276732";
+export declare const TransferSchedulerContractAddress = "0x27481fE1C63Cb6edaD59D0Cd65E95cA5676dc9eb";
 export declare const transferSchedulerABI: readonly [{
     readonly type: "function";
     readonly name: "UPGRADE_INTERFACE_VERSION";

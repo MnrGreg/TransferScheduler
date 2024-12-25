@@ -10,3 +10,9 @@ ffi = true
 ast = true
 build_info = true
 extra_output = ["storageLayout"]
+
+[etherscan]
+sepolia = { key = "${ETHERSCAN_API_KEY}" }
+
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"

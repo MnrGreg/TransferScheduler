@@ -30,19 +30,19 @@ async function main() {
     balance = await gasTokenContract.methods.balanceOf(owner).call();
     console.log(`Balance of gasToken: ${balance}`);
 
-    const amount = 10 ** 6;
-    const notBeforeDate = Math.floor(new Date().getTime() / 1000) + 60; //current time + 1 minute
+    const amount = 5 ** 6;
+    const notBeforeDate = Math.floor(new Date().getTime() / 1000) + 30; //current time + 30 seconds
     const notAfterDate = Math.floor(new Date().getTime() / 1000) + 60 * 60 * 24 * 7; //current time + 1 week
-    const maxBaseFee = 8000000;
+    const maxBaseFee = 10000000;
     const nonceBytes = crypto.randomBytes(6);
     const nonce = BigInt('0x' + nonceBytes.toString('hex'));
 
     const relayCharge = await getRelayCharge(web3, maxBaseFee);
 
-    let txid = await tokenContract.methods.approve(TransferSchedulerContractAddress, amount).send({
+    let txid = await tokenContract.methods.approve(TransferSchedulerContractAddress, amount * 100).send({
         from: owner
     });
-    txid = await gasTokenContract.methods.approve(TransferSchedulerContractAddress, relayCharge).send({
+    txid = await gasTokenContract.methods.approve(TransferSchedulerContractAddress, relayCharge * 100).send({
         from: owner
     });
 
