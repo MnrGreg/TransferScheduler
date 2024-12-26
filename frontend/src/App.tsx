@@ -556,7 +556,7 @@ function App() {
           </div>
 
           <div>
-            <h3>Contract State: getTransfers(complete=true).</h3>
+            <h3>Contract State: getTransfers(complete=true)</h3>
             <GetCompletedTransfers />
           </div>
         </>
