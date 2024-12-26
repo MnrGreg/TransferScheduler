@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.queueScheduledTransfer = exports.fetchQueuedTransfers = exports.getRelayCharge = exports.getGasTokenAddress = exports.createTypedData = void 0;
+exports.getTransfers = exports.queueScheduledTransfer = exports.fetchQueuedTransfers = exports.getRelayCharge = exports.getGasTokenAddress = exports.createTypedData = void 0;
 const constants_1 = require("./constants");
 // Function to create typed data for Scheduled Transfer
 function createTypedData(chainId, scheduledTransfer) {
@@ -80,4 +80,10 @@ async function queueScheduledTransfer(web3, scheduledTransfer, signature, from) 
     return await scheduledTransferContract.methods.queueScheduledTransfer(scheduledTransfer.owner, scheduledTransfer.nonce, scheduledTransfer.token, scheduledTransfer.to, scheduledTransfer.amount, scheduledTransfer.notBeforeDate, scheduledTransfer.notAfterDate, scheduledTransfer.maxBaseFee, signature).send({ from: from });
 }
 exports.queueScheduledTransfer = queueScheduledTransfer;
+async function getTransfers(web3, address, nonce) {
+    const scheduledTransferContract = new web3.eth.Contract(constants_1.transferSchedulerABI, constants_1.TransferSchedulerContractAddress);
+    const addressNonceRecord = await scheduledTransferContract.methods.transfers(address, nonce).call();
+    return addressNonceRecord;
+}
+exports.getTransfers = getTransfers;
 //# sourceMappingURL=web3.js.map

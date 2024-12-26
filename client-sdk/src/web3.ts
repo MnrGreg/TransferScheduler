@@ -1,6 +1,6 @@
 import { Web3, Eip712TypedData } from "web3";
 import { TransferSchedulerContractAddress, transferSchedulerABI } from './constants';
-import { ScheduledTransfer, TransferScheduledEventLog, QueuedTransferRecords } from './types';
+import { ScheduledTransfer, TransferScheduledEventLog, QueuedTransferRecords, AddressNonceRecord } from './types';
 
 // Function to create typed data for Scheduled Transfer
 export function createTypedData(
@@ -93,4 +93,10 @@ export async function queueScheduledTransfer(web3: Web3, scheduledTransfer: Sche
         scheduledTransfer.notAfterDate,
         scheduledTransfer.maxBaseFee,
         signature).send({ from: from });
+}
+
+export async function getTransfers(web3: Web3, address: `0x${string}`, nonce: number) {
+    const scheduledTransferContract = new web3.eth.Contract(transferSchedulerABI, TransferSchedulerContractAddress);
+    const addressNonceRecord: AddressNonceRecord = await scheduledTransferContract.methods.transfers(address, nonce).call();
+    return addressNonceRecord;
 }

@@ -456,7 +456,7 @@ function App() {
     <>
       <div>
         <div>
-          <h3>Account</h3>
+          <h3>TransferScheduler Contract: {TransferSchedulerContractAddress}</h3>
           Status: {accountStatus}
           <br />
           Address: {address}

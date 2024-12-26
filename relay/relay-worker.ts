@@ -1,23 +1,28 @@
 import Web3 from 'web3';
-import { TransferSchedulerContractAddress, transferSchedulerABI, ScheduledTransfer, TransferScheduledEventLog } from 'transfer-scheduler-sdk';
+import { TransferSchedulerContractAddress, transferSchedulerABI, TransferScheduledEventLog, AddressNonceRecord } from 'transfer-scheduler-sdk';
 import * as dotenv from 'dotenv'
 dotenv.config()
 
 async function main() {
     if (!process.env.RPC_URL) {
-        throw new Error(`RPC_URL is required`)
+        throw new Error(`RPC_URL env required`)
+    }
+
+    if (!process.env.PRIVATE_KEY) {
+        throw new Error('PRIVATE_KEY env required');
     }
     const websocketProvider = process.env.RPC_URL
     const web3 = new Web3(new Web3.providers.WebsocketProvider(websocketProvider));
     web3.eth.handleRevert = true;
-    const accounts = await web3.eth.getAccounts();
-    const address = accounts[3];
-    console.log(`ETH balance for address index 0:`, await web3.eth.getBalance(address));
+    const account = web3.eth.accounts.wallet.add(process.env.PRIVATE_KEY)[0];
+    const address = account.address;
+    console.log(`ETH balance for address ${address}`, await web3.eth.getBalance(address));
 
     const transferSchedulerContract = new web3.eth.Contract(transferSchedulerABI, TransferSchedulerContractAddress);
 
     const subscription = await transferSchedulerContract.events.TransferScheduled({
-        fromBlock: "latest"
+        //fromBlock: 7360494,
+        fromBlock: "latest",
     });
 
     subscription.on('data', async function (event) {
@@ -35,7 +40,12 @@ async function main() {
             maxBaseFee: transferScheduledEventLog.maxBaseFee,
         }
         // TODO: Move to Temporal
-        // TODO: call contract to check if [address][nonce].completed isn't already true (if replaying old events)
+
+        const addressNonceRecord: AddressNonceRecord = await transferSchedulerContract.methods.transfers(transferScheduledEventLog.owner, transferScheduledEventLog.nonce).call();
+        if (addressNonceRecord.exists && addressNonceRecord.completed) {
+            console.log("Queued Transfer already executed. Nonce:", transferScheduledEventLog.nonce);
+            return;
+        }
 
         let currentTime = Math.floor(new Date().getTime() / 1000);
         if (currentTime < Number(transferScheduledEventLog.notAfterDate)) {
@@ -47,40 +57,31 @@ async function main() {
 
             console.log("Queued Transfer ready. Nonce:", transferScheduledEventLog.nonce);
 
-            // MaxPriorityFeePerGas: 1000000000n
-            // MaxFeePerGas: 1000036300n
-            // Base fee: 18150n
-
-            // MaxPriorityFeePerGas: 2500000000n
-            // MaxFeePerGas: 2500007776n
-            // Base fee: 3888n
-            // 3403
-
-            // MaxPriorityFeePerGas: 2500000000n
-            // MaxFeePerGas: 2503150130n
-            // Base fee: 1575065
-            // 1378351
-
-            //`max_priority_fee_per_gas` greater than `max_fee_per_gas`
+            const feeData = await web3.eth.calculateFeeData();
+            console.log('MaxPriorityFeePerGas:', feeData.maxPriorityFeePerGas);
+            console.log('MaxFeePerGas:', feeData.maxFeePerGas);
+            console.log('Base fee:', feeData.baseFeePerGas);
+            if (!feeData.maxPriorityFeePerGas || !feeData.maxFeePerGas) {
+                console.log('Fee data not available. Waiting 1 minute...');
+                return;
+            }
 
             let isCallSuccessful = false;
             while (!isCallSuccessful) {
 
-                const feeData = await web3.eth.calculateFeeData();
-                console.log('MaxPriorityFeePerGas:', feeData.maxPriorityFeePerGas);
-                console.log('MaxFeePerGas:', feeData.maxFeePerGas);
-                console.log('Base fee:', feeData.baseFeePerGas);
                 await web3.eth.getBlock("pending").then((block) => console.log(Number(block.baseFeePerGas)));
 
                 try {
+
                     // Simulate contract execution with eth_call first
+                    // ToDO add accessList
                     await transferSchedulerContract.methods.executeScheduledTransfer(scheduledTransfer,
                         transferScheduledEventLog.signature
                     ).call({
                         from: address,
-                        gas: web3.utils.toHex(170000),
-                        //maxPriorityFeePerGas: web3.utils.toHex(web3.utils.toWei('0.001', 'gwei')),
-                        //maxFeePerGas: web3.utils.toHex(web3.utils.toWei('0.1', 'gwei')),
+                        gas: web3.utils.toHex(175000),
+                        maxPriorityFeePerGas: "1000000",    //0.001 Gwei
+                        maxFeePerGas: feeData.maxFeePerGas.toString()
                     });
                     console.log('Contract simulation successful for Nonce:', transferScheduledEventLog.nonce);
                     isCallSuccessful = true;
@@ -91,9 +92,11 @@ async function main() {
                 }
             }
 
-            //TODO: Fine tune max gas fee
             const tx = await transferSchedulerContract.methods.executeScheduledTransfer(scheduledTransfer, transferScheduledEventLog.signature).send({
                 from: address,
+                gas: web3.utils.toHex(175000),
+                maxPriorityFeePerGas: "1000000",    //0.001 Gwei
+                maxFeePerGas: feeData.maxFeePerGas.toString()
             });
             console.log("Transfer executed for Nonce:", transferScheduledEventLog.nonce, "TxHash:", tx.transactionHash);
 

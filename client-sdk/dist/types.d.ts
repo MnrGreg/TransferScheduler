@@ -24,4 +24,9 @@ export type QueuedTransferRecords = {
     nonce: bigint;
     blockNumber: number;
 }[];
+export type AddressNonceRecord = {
+    blockNumber: number;
+    completed: boolean;
+    exists: boolean;
+};
 //# sourceMappingURL=types.d.ts.map

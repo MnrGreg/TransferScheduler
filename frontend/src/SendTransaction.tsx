@@ -221,7 +221,7 @@ export function QueueTransferTransaction() {
 
     return (
         <form onSubmit={submit}>
-            <h3>Queue Transfer Transaction on-chain</h3>
+            <h3>Queue TransferScheduler Transaction onchain</h3>
             <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #ccc', fontSize: '14px' }}>
                 <tbody>
                     <tr>
@@ -303,9 +303,9 @@ export function QueueTransferTransaction() {
                         </td>
                     </tr>
                     <tr>
-                        <td style={{ border: '1px solid #ccc', padding: '8px' }}><span title={relayGasToken as string}>{relayGasTokenName}</span></td>
+                        <td style={{ border: '1px solid #ccc', padding: '8px' }}><span title={relayGasToken as string}>{relayGasTokenName} (gas token)</span></td>
                         <td style={{ border: '1px solid #ccc', padding: '8px' }}>{formatEther(relayCommissionTotal)}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '8px' }}>relay fee = block.basefee * gas (75k) * relay commission ({relayGasCommissionPercentage}%)</td>
+                        <td style={{ border: '1px solid #ccc', padding: '8px' }}>relay fee = block.basefee * gas (130k) * relay commission ({relayGasCommissionPercentage}%)</td>
                         <td style={{ border: '1px solid #ccc', padding: '8px' }}>
                             {maxBaseFee ? `${maxBaseFee}` : '-'}
                         </td>
@@ -317,7 +317,7 @@ export function QueueTransferTransaction() {
 
             <div style={{ marginTop: '16px' }}>
                 <button disabled={isPending} type="submit">
-                    {isPending ? 'Confirming...' : 'Queue transfer on-chain'}
+                    {isPending ? 'Confirming...' : 'Sign and queue transfer onchain'}
                 </button>
             </div>
 

@@ -1,8 +1,8 @@
 name: Build and Deploy
 on: 
   push:
-    paths:
-      - frontend/**
+    # paths:
+    #   - frontend/**
 
 permissions:
   contents: write
@@ -16,9 +16,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: pack client-sdk
+        run: |
+          cd client-sdk
+          npm pack
+
       - name: Install and Build
         run: |
           cd frontend
+          npm install ../client-sdk/transfer-scheduler-sdk-1.0.0.tgz
           npm ci
           npm run build
 

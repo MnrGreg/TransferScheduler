@@ -1,8 +1,8 @@
 
-# Base ERC20 contract addresses
-USDC_CONTRACT?=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
-USDC_HOLDER?=0x0B0A5886664376F59C351ba3f598C8A8B4D0A6f3
-WETH_CONTRACT?=0x4200000000000000000000000000000000000006
+# Sepolia ERC20 contract addresses
+USDC_CONTRACT?=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
+USDC_HOLDER?=0xfCF7129A8a69a2BD7f2f300eFc352342D6c1638b
+WETH_CONTRACT?=0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14
 
 # Anvil wallet addresses
 ADDRESS=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
@@ -25,14 +25,14 @@ stop:
 	fi
 
 start-anvil-base-fork: stop
-	anvil --chain-id 31337 --block-time 30 --gas-price 1000000000  \
-	--fork-url https://mainnet.base.org & echo $$! >> $(PIDFILE)
+	anvil --chain-id 11155111 --block-time 30 --gas-price 1000000000  \
+	--fork-url https://sepolia.drpc.org & echo $$! >> $(PIDFILE)
 	sleep 10
 
 # Transfer USDC when using forked chain
 transfer-usdc:
 	cast rpc anvil_impersonateAccount ${USDC_HOLDER}
-	cast send ${USDC_CONTRACT} --from ${USDC_HOLDER} "transfer(address,uint256)(bool)" ${ADDRESS} 1000000000 --unlocked
+	cast send ${USDC_CONTRACT} --from ${USDC_HOLDER} "transfer(address,uint256)(bool)" ${ADDRESS} 10000000 --unlocked
 	cast rpc anvil_stopImpersonatingAccount ${USDC_HOLDER}
 
 # Transfer WETH when using forked chain
@@ -53,23 +53,22 @@ deploy-transferscheduler-contract:
 	@echo "Deployed TransferScheduler contract behind proxy address: ${TSCONTRACT}"
 	forge inspect contracts/src/TransferSchedulerV1.sol:TransferSchedulerV1 abi > ./client-sdk/transferSchedulerABI.json
 	sed -i '' -e "s/TransferSchedulerContractAddress = '.*';/TransferSchedulerContractAddress = '${TSCONTRACT}';/" client-sdk/src/constants.ts
-	sed -i '' -e "s/TransferSchedulerContractAddress = '.*';/TransferSchedulerContractAddress = '${TSCONTRACT}';/" frontend/src/constants.ts
 
 build-client-sdk:
-	cd client-sdk && npm run build
+	cd client-sdk && npm run build && npm pack && cp transfer-scheduler-sdk-*.tgz ../relay
 
 start-relay: 
 	@echo "Starting relay"
-	cd relay && (RPC_URL=ws://localhost:8545 ts-node relay-worker.ts & echo $$! >> ../$(PIDFILE))
+	cd relay && npm install && (RPC_URL=ws://localhost:8545 PRIVATE_KEY=${SIGNERKEY} ts-node relay-worker.ts & echo $$! >> ../$(PIDFILE))
 
 start-webclient:
-	cd frontend && (npm run dev & echo $$! >> ../$(PIDFILE))
+	cd frontend && npm install && (npm run preview & echo $$! >> ../$(PIDFILE))
 
 start-example-app:
 	cd client-sdk/example-app && (ts-node index.ts & echo $$! >> ../$(PIDFILE))
 
 test-contract:
-	forge clean && forge test -vvvvv --fork-url https://mainnet.base.org
+	forge clean && forge test -vvvvv --fork-url https://sepolia.drpc.org
 
 all: start-anvil-base-fork transfer-usdc transfer-weth deploy-transferscheduler-contract build-client-sdk start-relay start-webclient start-example-app
 

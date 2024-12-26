@@ -8,7 +8,7 @@ import {IScheduledTransfer} from "contracts/src/interfaces/IScheduledTransfer.so
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
-import {TransferSchedulerV1} from "contracts/src/TransferSchedulerV1.sol";
+import {TransferSchedulerV2} from "contracts/src/TransferSchedulerV2.sol";
 import {
     TransferTooLate,
     TransferTooEarly,
@@ -31,7 +31,7 @@ contract TransferSchedulerTest is Test {
         bytes signature
     );
 
-    TransferSchedulerV1 transferScheduler;
+    TransferSchedulerV2 transferScheduler;
     IScheduledTransfer.ScheduledTransferDetails scheduledTransferDetails;
 
     bytes32 DOMAIN_SEPARATOR;
@@ -59,11 +59,11 @@ contract TransferSchedulerTest is Test {
         vm.fee(8000000);
 
         address proxy = Upgrades.deployUUPSProxy(
-            "TransferSchedulerV1.sol",
-            abi.encodeCall(TransferSchedulerV1.initialize, (address(0x4200000000000000000000000000000000000006), 100))
+            "TransferSchedulerV2.sol",
+            abi.encodeCall(TransferSchedulerV2.initialize, (address(0x4200000000000000000000000000000000000006), 100))
         );
 
-        transferScheduler = TransferSchedulerV1(proxy);
+        transferScheduler = TransferSchedulerV2(proxy);
 
         relayGasCommissionPercentage = transferScheduler.getGasCommissionPercentage();
         address gasTokenAddress = transferScheduler.getGasToken();
@@ -131,7 +131,7 @@ contract TransferSchedulerTest is Test {
             owner, nonce, address(token0), recipientAddress, amount, notBeforeDate, notAfterDate, maxBaseFee, signature
         );
 
-        TransferSchedulerV1.QueuedTransferRecord[] memory records =
+        TransferSchedulerV2.QueuedTransferRecord[] memory records =
             transferScheduler.getScheduledTransfers(owner, false);
         assertEq(nonce, records[0].nonce);
     }

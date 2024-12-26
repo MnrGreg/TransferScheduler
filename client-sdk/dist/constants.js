@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.transferSchedulerABI = exports.TransferSchedulerContractAddress = void 0;
-exports.TransferSchedulerContractAddress = '0x9A49A57903B1D001353e521f9236F19EC54d3143'; // Replace with actual address
+exports.TransferSchedulerContractAddress = '0x9A49A57903B1D001353e521f9236F19EC54d3143';
 exports.transferSchedulerABI = [
     {
         "type": "function",
