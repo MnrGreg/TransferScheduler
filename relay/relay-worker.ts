@@ -21,7 +21,6 @@ async function main() {
     const transferSchedulerContract = new web3.eth.Contract(transferSchedulerABI, TransferSchedulerContractAddress);
 
     const subscription = await transferSchedulerContract.events.TransferScheduled({
-        //fromBlock: 7360494,
         fromBlock: "latest",
     });
 
@@ -39,7 +38,7 @@ async function main() {
             notAfterDate: transferScheduledEventLog.notAfterDate,
             maxBaseFee: transferScheduledEventLog.maxBaseFee,
         }
-        // TODO: Move to Temporal
+        // TODO: Use to long running workflow orchestrator tooling
 
         const addressNonceRecord: AddressNonceRecord = await transferSchedulerContract.methods.transfers(transferScheduledEventLog.owner, transferScheduledEventLog.nonce).call();
         if (addressNonceRecord.exists && addressNonceRecord.completed) {

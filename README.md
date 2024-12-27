@@ -1,54 +1,85 @@
 # TransferScheduler Contract
 
 ## Overview
-The TransferScheduler is a public goods smart contract to facilitate scheduled ERC20 token transfers on the Ethereum blockchains. It allows users to queue transfers that will be executed at a specified future time, ensuring that transactions occur automatically without the need for manual intervention. This offers:
+The TransferScheduler is a public-good smart contract to facilitate scheduled ERC20 token transfers on Ethereum blockchains. It allows users to queue transfers that will be executed at a specified future time, ensuring that transactions occur automatically without the need for manual intervention. This offers:
 
 - **Better Capital Efficiency**: Users retain control of their ERC20 tokens until the scheduled transaction date, allowing them to accrue interest and rewards or utilize funds for other purposes in the interim.
 - **Onchain Transparency**: Senders and Recipients can view upcoming transfers directly on the blockchain, enhancing financial transparency.
 - **Convenience**: This allows users to plan and automate payments, improving convenience. Ideal for routine payments, such as remittances, DAO disbursements, and small business payroll.
 
 ## Features
-- **Non-Monotonic Nonces**: Allows for flexible scheduling of transactions at arbitrary points in time, independent of previous transactions.
-- **Relayer gas compensation**: The contract compensates relayers for gas fees in WETH and includes a percentage of the gas fees as reward, incentivizing relayers to perform the transfers.
-- **Gas Price Threshold**: Transfers will not be executed if the network gas price is higher than a specified threshold (maxBaseFee).
-- **Event Watching**: The relay worker watches for [TransferScheduled](cci:2://file:///./frontend/src/App.tsx:9:0-9:62) events emitted by the TransferScheduler contract.
-
-## Types
-```typescript
-type ScheduledTransfer = {
-    owner: `0x${string}`;
-    nonce: number;
-    token: `0x${string}`;
-    to: `0x${string}`;
-    amount: number;
-    spender: `0x${string}`;
-    notBeforeDate: number;
-    notAfterDate: number;
-    maxBaseFee: number;
-};
-```
+- **Non-Monotonic Nonces**: Allows for non-sequential scheduling of transactions at arbitrary points in time, independent of previous transactions.
+- **Transfer Restrictions**: `notBeforeDate` and `notAfterDate` dates ensure that transfers are only executed within the valid time frame. `block.timestamp` is used for comparison.
+- **Relayer Gas Compensation**: The contract [compensates](./contracts/src/TransferSchedulerV2.sol#L185-L190) relayers for their ETH gas spend in WETH. An additional gas percentage commission is added to compensate relayers for their `MaxPriorityFeePerGas` tip, compute costs, and opportunity costs.
+  - The gas compensation is calculated as `block.basefee * 140000 (gas usage) * (1 + relayGasCommissionPercentage / 100)`.
+  - `relayGasCommissionPercentage` is initialized at contract deployment for each chain (100% for Sepolia).
+  - The WETH payment to the relayer is included automatically as part of the contract transfer.
+  - If insufficient WETH is available, the relayer will not broadcast the transaction.
+- **Gas Price Threshold**: Transfers will not execute if the network gas price `block.basefee` is higher than the user specified threshold `maxBaseFee`.
+- **Offchain queuing**: ScheduledTransfer signed messages can be provided directly to recipients or third party relays for offchain queuing, thereby avoid onchain queueing gas cost (70k gas).
 
 ## Components
 ### Smart Contract
 The core functionality is implemented in the TransferScheduler smart contract, which includes methods for:
-- Queuing signed scheduled transfers. 70k gas
-- Executing scheduled transfers based on predefined conditions. 130k gas
+- Queuing signed scheduled transfers (address, nonce, nonce status) - 70k gas
+- [Verifies](./contracts/src/TransferSchedulerV2.sol#L179) the user [EIP712 ScheduledTransfer typed message signature](./client-sdk/src/web3.ts#L9-L10)
+- Executing scheduled transfers - 130k gas
+- [Retrieving](./contracts/src/TransferSchedulerV2.sol#L136) the [relay gas token](./contracts/src/TransferSchedulerV2.sol#L29)
+- [Retrieving](./contracts/src/TransferSchedulerV2.sol#L132) the [relay gas commission percentage](./contracts/src/TransferSchedulerV2.sol#L30)
+
+### Frontend
+The frontend provides an example user interface for:
+- Creating, signing and queuing scheduled transfers
+- Increasing allowance for the transfer token and relay gas token
+- Watching for TransferScheduled events
+- Listing historical completed or uncompleted transfers
+
+An demo example is published at [https://mnrgreg.github.io/TransferScheduler/](https://mnrgreg.github.io/TransferScheduler/) which uses the Sepolia chain and Uniswap's [Sepolia WETH](https://sepolia.etherscan.io/address/0xfff9976782d46cc05630d1f6ebab18b2324d6b14) as the relay gas token.
 
 ### Client SDK
 The client SDK provides a JavaScript library for interacting with the TransferScheduler contract. It includes functions for:
 - Queuing a signed scheduled transfer.
-- Watching for [TransferScheduled](cci:2://file:///./frontend/src/App.tsx:9:0-9:62) events.
+- Watching for TransferScheduled events.
 - Types for creating and signing scheduled transfers.
 
 ### Relay Worker
-The relay worker is responsible for:
-- Listening for [TransferScheduled](cci:2://file:///./frontend/src/App.tsx:9:0-9:62) events.
-- Writing event entries to a queue.
-- Waiting until the specified `notBeforeDate` before executing the transfer.
+A basic reference implementation that is responsible for:
+- Listening for events.
+- Persisting event entries to a local queue.
+- Evaluating all transfer restrictions before executing.
 - Executing the transfer with a pre-signed signature.
 
-### Frontend
-The frontend provides an example user interface for creating and signing scheduled transfers, and watching for [TransferScheduled](cci:2://file:///./frontend/src/App.tsx:9:0-9:62) events. Example published at [https://mnrgreg.github.io/TransferScheduler/](https://mnrgreg.github.io/TransferScheduler/) for Sepolia.
+
+## Types
+```typescript
+// EIP712 Typed Message for Scheduled Transfers
+primaryType: 'ScheduledTransfer',
+domain: {
+    name: 'TransferSchedulerV1',
+    version: '1',
+    chainId: chainId,
+    verifyingContract: TransferSchedulerContractAddress
+},
+types: {
+    EIP712Domain: [
+        { name: "name", type: "string" },
+        { name: "version", type: "string" },
+        { name: "chainId", type: "uint256" },
+        { name: "verifyingContract", type: "address" }
+    ],
+    ScheduledTransfer: [
+        { name: 'owner', type: 'address' },
+        { name: 'nonce', type: 'uint96' },
+        { name: 'token', type: 'address' },
+        { name: 'to', type: 'address' },
+        { name: 'amount', type: 'uint128' },
+        { name: 'spender', type: 'address' },
+        { name: 'notBeforeDate', type: 'uint40' },
+        { name: 'notAfterDate', type: 'uint40' },
+        { name: 'maxBaseFee', type: 'uint40' },
+    ]
+}
+```
 
 <!-- 
 ## Usage
