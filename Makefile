@@ -62,7 +62,7 @@ start-relay:
 	cd relay && npm install && (RPC_URL=ws://localhost:8545 PRIVATE_KEY=${SIGNERKEY} ts-node relay-worker.ts & echo $$! >> ../$(PIDFILE))
 
 start-webclient:
-	cd frontend && npm install && (npm run preview & echo $$! >> ../$(PIDFILE))
+	cd frontend && npm install && (npm run dev & echo $$! >> ../$(PIDFILE))
 
 start-example-app:
 	cd client-sdk/example-app && (ts-node index.ts & echo $$! >> ../$(PIDFILE))

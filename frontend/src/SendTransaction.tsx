@@ -226,7 +226,7 @@ export function QueueTransferTransaction() {
                 <tbody>
                     <tr>
                         <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>token</th>
-                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>amount</th>
+                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>transfer amount</th>
                         <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>to</th>
                         <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>maxBaseFee</th>
                         <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>notBeforeDate</th>
@@ -238,7 +238,7 @@ export function QueueTransferTransaction() {
                                 type="text"
                                 name="token"
                                 placeholder="0x..."
-                                style={{ width: '330px', padding: '8px', fontSize: '14px', border: 'none' }}
+                                style={{ width: '345px', padding: '8px', fontSize: '14px', border: 'none' }}
                                 onChange={handleTokenChange}
                                 required
                             />
@@ -258,7 +258,7 @@ export function QueueTransferTransaction() {
                             <input
                                 name="to"
                                 placeholder="0x..."
-                                style={{ width: '330px', border: 'none', padding: '8px', fontSize: '14px' }}
+                                style={{ width: '345px', border: 'none', padding: '8px', fontSize: '14px' }}
                                 required
                             />
                         </td>
@@ -305,7 +305,7 @@ export function QueueTransferTransaction() {
                     <tr>
                         <td style={{ border: '1px solid #ccc', padding: '8px' }}><span title={relayGasToken as string}>{relayGasTokenName} (gas token)</span></td>
                         <td style={{ border: '1px solid #ccc', padding: '8px' }}>{formatEther(relayCommissionTotal)}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '8px' }}>relay fee = block.basefee * gas (130k) * relay commission ({relayGasCommissionPercentage}%)</td>
+                        <td style={{ border: '1px solid #ccc', padding: '8px' }}><span title={`fee = block.basefee * gas (140k) * relay commission (${relayGasCommissionPercentage}%)`}>future relayer</span></td>
                         <td style={{ border: '1px solid #ccc', padding: '8px' }}>
                             {maxBaseFee ? `${maxBaseFee}` : '-'}
                         </td>
@@ -331,7 +331,7 @@ export function QueueTransferTransaction() {
                 gasToken={relayGasToken}
                 gasAmount={relayCommissionTotal}
             />
-        </form>
+        </form >
 
     );
 }

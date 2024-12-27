@@ -3,6 +3,7 @@ import { useAccount } from 'wagmi';
 import { readContract, simulateContract, writeContract } from '@wagmi/core';
 import { config } from './wagmi';
 import { TransferSchedulerContractAddress } from 'transfer-scheduler-sdk';
+import { getTokenSymbol } from './App';
 
 interface TokenAllowanceRowProps {
     token: `0x${string}` | null;
@@ -13,12 +14,19 @@ interface TokenAllowanceRowProps {
 const TokenAllowanceRow = ({ token, amount, label }: TokenAllowanceRowProps) => {
     const { address: userAddress } = useAccount();
     const [allowance, setAllowance] = React.useState<bigint | null>(null);
+    const [balance, setBalance] = React.useState<bigint | null>(null);
+    const [symbol, setSymbol] = React.useState<string | null>(null);
     const [isPending, setIsPending] = React.useState(false);
     const [newAllowance, setNewAllowance] = React.useState('');
     const [decimals, setDecimals] = React.useState<number | null>(null);
 
     React.useEffect(() => {
         if (!userAddress || !token) return;
+
+        // Fetch token symbol
+        getTokenSymbol(token)
+            .then(setSymbol)
+            .catch(console.error);
 
         // Read token decimals
         readContract(config, {
@@ -33,6 +41,22 @@ const TokenAllowanceRow = ({ token, amount, label }: TokenAllowanceRowProps) => 
             functionName: 'decimals',
         })
             .then(setDecimals)
+            .catch(console.error);
+
+        // Fetch token balance
+        readContract(config, {
+            abi: [{
+                name: 'balanceOf',
+                type: 'function',
+                stateMutability: 'view',
+                inputs: [{ name: 'account', type: 'address' }],
+                outputs: [{ type: 'uint256' }],
+            }],
+            address: token,
+            functionName: 'balanceOf',
+            args: [userAddress],
+        })
+            .then(setBalance)
             .catch(console.error);
 
         // Read token allowance
@@ -65,6 +89,7 @@ const TokenAllowanceRow = ({ token, amount, label }: TokenAllowanceRowProps) => 
         return BigInt(Math.floor(Number(amount) * Math.pow(10, decimals)));
     };
 
+    // Execute token approval
     const handleApprove = async () => {
         if (!token || !newAllowance || decimals === null) return;
 
@@ -95,14 +120,18 @@ const TokenAllowanceRow = ({ token, amount, label }: TokenAllowanceRowProps) => 
         }
     };
 
-    const color = !allowance || !amount ? 'inherit'
-        : allowance < amount ? 'red'
+    const color = !amount ? 'inherit'
+        : !allowance || allowance < amount ? 'red'
             : 'green';
 
     return (
         <tr style={{ border: '1px solid #ccc' }}>
             <td style={{ border: '1px solid #ccc', padding: '4px' }}>{label}</td>
-            <td style={{ border: '1px solid #ccc', padding: '4px', color }}>
+            <td style={{ border: '1px solid #ccc', padding: '4px' }}>{symbol === null ? '...' : symbol}</td>
+            <td style={{ border: '1px solid #ccc', padding: '4px' }}>
+                {balance === null ? '...' : formatAmount(balance)}
+            </td>
+            <td style={{ border: '1px solid #ccc', padding: '4px', color: color }}>
                 {allowance === null ? '...' : formatAmount(allowance)}
             </td>
             <td style={{ border: '1px solid #ccc' }}>
@@ -112,7 +141,6 @@ const TokenAllowanceRow = ({ token, amount, label }: TokenAllowanceRowProps) => 
                     onChange={(e) => setNewAllowance(e.target.value)}
                     placeholder="0.00"
                     style={{
-                        width: '100px',
                         border: 'none',
                         padding: '4px',
                         fontSize: '14px',
@@ -152,7 +180,7 @@ export function TokenAllowances({
         <div style={{ marginTop: '16px', marginBottom: '16px' }}>
             <h3>TransferScheduler Allowances</h3>
             <table style={{
-                width: '500px',
+                width: '700px',
                 borderCollapse: 'collapse',
                 border: '1px solid #ccc',
                 fontSize: '14px',
@@ -161,6 +189,8 @@ export function TokenAllowances({
                 <thead>
                     <tr>
                         <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '4px' }}>token</th>
+                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '4px' }}>token symbol</th>
+                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '4px' }}>balance</th>
                         <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '4px' }}>current allowance</th>
                         <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '4px' }}>increase allowance</th>
                         <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '4px' }}>action</th>
