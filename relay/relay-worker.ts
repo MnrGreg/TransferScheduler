@@ -1,4 +1,4 @@
-import Web3 from 'web3';
+import Web3, { WebSocketProvider } from 'web3';
 import { TransferSchedulerContractAddress, transferSchedulerABI, TransferScheduledEventLog, AddressNonceRecord } from 'transfer-scheduler-sdk';
 import * as dotenv from 'dotenv'
 dotenv.config()
@@ -11,8 +11,24 @@ async function main() {
     if (!process.env.PRIVATE_KEY) {
         throw new Error('PRIVATE_KEY env required');
     }
-    const websocketProvider = process.env.RPC_URL
-    const web3 = new Web3(new Web3.providers.WebsocketProvider(websocketProvider));
+    let headers = {};
+    if (!process.env.RPC_URL_HEADER_KEY || !process.env.RPC_URL_HEADER_VALUE) headers = {}
+    else headers = {
+        [process.env.RPC_URL_HEADER_KEY]: process.env.RPC_URL_HEADER_VALUE
+    }
+    const websocketProvider = new WebSocketProvider(
+        process.env.RPC_URL,
+        {
+            headers: headers
+        },
+        {
+            delay: 500,
+            autoReconnect: true,
+            maxAttempts: 10,
+        },
+    );
+    const web3 = new Web3(websocketProvider);
+
     web3.eth.handleRevert = true;
     const account = web3.eth.accounts.wallet.add(process.env.PRIVATE_KEY)[0];
     const address = account.address;

@@ -29,11 +29,13 @@ contract TransferSchedulerV2 is IScheduledTransfer, EIP712Upgradeable, UUPSUpgra
     address relayGasToken;
     uint8 relayGasCommissionPercentage;
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     // The initialize function will be used to set up the initial state of the contract.
-    function initialize(address _relayGasToken, uint8 _relayGasCommissionPercentage) public initializer {
-        __Ownable_init(msg.sender);
-        __UUPSUpgradeable_init();
-        __EIP712_init("TransferSchedulerV2", "1");
+    function initialize(address _relayGasToken, uint8 _relayGasCommissionPercentage) public reinitializer(2) {
         relayGasToken = _relayGasToken;
         relayGasCommissionPercentage = _relayGasCommissionPercentage;
     }

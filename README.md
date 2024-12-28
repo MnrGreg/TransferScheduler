@@ -32,7 +32,7 @@ The frontend provides an example user interface for:
 - Creating, signing and queuing scheduled transfers
 - Increasing allowance for the transfer token and relay gas token
 - Watching for TransferScheduled events
-- Listing historical completed or uncompleted transfers
+- Listing historical completed or future uncompleted transfers
 
 An demo example is published at [https://mnrgreg.github.io/TransferScheduler/](https://mnrgreg.github.io/TransferScheduler/) which uses the Sepolia chain and Uniswap's [Sepolia WETH](https://sepolia.etherscan.io/address/0xfff9976782d46cc05630d1f6ebab18b2324d6b14) as the relay gas token.
 

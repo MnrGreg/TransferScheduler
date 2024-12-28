@@ -60,7 +60,7 @@ contract TransferSchedulerTest is Test {
 
         address proxy = Upgrades.deployUUPSProxy(
             "TransferSchedulerV2.sol",
-            abi.encodeCall(TransferSchedulerV2.initialize, (address(0x4200000000000000000000000000000000000006), 100))
+            abi.encodeCall(TransferSchedulerV2.initialize, (address(0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14), 100))
         );
 
         transferScheduler = TransferSchedulerV2(proxy);

@@ -1,5 +1,5 @@
 import { http, createConfig } from 'wagmi'
-import { sepolia, foundry } from 'wagmi/chains'
+import { base, sepolia, foundry } from 'wagmi/chains'
 import { coinbaseWallet, injected } from 'wagmi/connectors'
 
 export const config = createConfig({
@@ -10,6 +10,7 @@ export const config = createConfig({
     //walletConnect({ projectId: import.meta.env.VITE_WC_PROJECT_ID }),
   ],
   transports: {
+    [base.id]: http('https://mainnet.base.org'),
     [sepolia.id]: http('https://sepolia.drpc.org'),
     [foundry.id]: http('http://localhost:8545'),
   },

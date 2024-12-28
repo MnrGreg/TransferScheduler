@@ -1,4 +1,4 @@
-export const TransferSchedulerContractAddress = '0x9A49A57903B1D001353e521f9236F19EC54d3143';
+export const TransferSchedulerContractAddress = '0xbB0b174A5459af5787a54C91EeB957cb9b14bc56';
 
 
 export const transferSchedulerABI = [
