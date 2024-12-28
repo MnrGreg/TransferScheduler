@@ -1,9 +1,9 @@
 name: Contract tests
 on: 
   push:
-    paths:
-      - contracts/**
-      - test/**
+    # paths:
+    #   - contracts/**
+    #   - test/**
 
 jobs:
   check:
@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1

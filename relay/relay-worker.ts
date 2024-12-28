@@ -40,6 +40,10 @@ async function main() {
         fromBlock: "latest",
     });
 
+    subscription.on("connected", function (subscriptionId) {
+        console.log("Connected to events: ", subscriptionId);
+    });
+
     subscription.on('data', async function (event) {
         const transferScheduledEventLog = event.returnValues as TransferScheduledEventLog;
 
@@ -84,8 +88,6 @@ async function main() {
             let isCallSuccessful = false;
             while (!isCallSuccessful) {
 
-                await web3.eth.getBlock("pending").then((block) => console.log(Number(block.baseFeePerGas)));
-
                 try {
 
                     // Simulate contract execution with eth_call first
@@ -101,7 +103,7 @@ async function main() {
                     console.log('Contract simulation successful for Nonce:', transferScheduledEventLog.nonce);
                     isCallSuccessful = true;
                 } catch (error) {
-                    console.log('Contract simulation failed:', error);
+                    console.log('Contract simulation failed for Nonce:', transferScheduledEventLog.nonce, 'Error:', error);
                     console.log('Waiting 1 minute before retrying...');
                     await new Promise(resolve => setTimeout(resolve, 60000)); // Sleep for 1 minute
                 }
@@ -119,6 +121,14 @@ async function main() {
             console.log("Queued Transfer too late. Current Time:", currentTime, "NotAfterDate:", transferScheduledEventLog.notAfterDate, "Nonce:", transferScheduledEventLog.nonce);
         }
     });
+
+    subscription.on("error", function (error) {
+        console.error("Error receiving event data: ", error);
+    });
+
+    websocketProvider.on('disconnect', () => {
+        console.error("websocketProvider disconnected");
+    })
 }
 
 main();

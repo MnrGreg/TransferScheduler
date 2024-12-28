@@ -13,10 +13,7 @@
             "runtimeArgs": [
                 "--require",
                 "ts-node/register"
-            ],
-            "env": {
-                "RPC_URL": "ws://localhost:8545"
-            }
+            ]
         }
     ]
 }
