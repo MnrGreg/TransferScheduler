@@ -36,6 +36,11 @@ async function main() {
 
     const transferSchedulerContract = new web3.eth.Contract(transferSchedulerABI, TransferSchedulerContractAddress);
 
+    const relayGasUsage = await transferSchedulerContract.methods.getRelayGasUsage().call();
+    if (!relayGasUsage) {
+        throw new Error('Relay gas usage not set');
+    }
+
     const subscription = await transferSchedulerContract.events.TransferScheduled({
         fromBlock: "latest",
     });
@@ -96,7 +101,7 @@ async function main() {
                         transferScheduledEventLog.signature
                     ).call({
                         from: address,
-                        gas: web3.utils.toHex(175000),
+                        gas: web3.utils.toHex(relayGasUsage),
                         maxPriorityFeePerGas: "1000000",    //0.001 Gwei
                         maxFeePerGas: feeData.maxFeePerGas.toString()
                     });
@@ -111,7 +116,7 @@ async function main() {
 
             const tx = await transferSchedulerContract.methods.executeScheduledTransfer(scheduledTransfer, transferScheduledEventLog.signature).send({
                 from: address,
-                gas: web3.utils.toHex(175000),
+                gas: web3.utils.toHex(relayGasUsage),
                 maxPriorityFeePerGas: "1000000",    //0.001 Gwei
                 maxFeePerGas: feeData.maxFeePerGas.toString()
             });

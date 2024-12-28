@@ -3,7 +3,7 @@ import { base, sepolia, foundry } from 'wagmi/chains'
 import { coinbaseWallet, injected } from 'wagmi/connectors'
 
 export const config = createConfig({
-  chains: [sepolia, foundry],
+  chains: [base, sepolia, foundry],
   connectors: [
     injected(),
     coinbaseWallet(),

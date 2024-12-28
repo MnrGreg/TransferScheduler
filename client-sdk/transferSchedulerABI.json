@@ -1,5 +1,10 @@
 [
   {
+    "type": "constructor",
+    "inputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
     "type": "function",
     "name": "UPGRADE_INTERFACE_VERSION",
     "inputs": [],
@@ -8,30 +13,6 @@
         "name": "",
         "type": "string",
         "internalType": "string"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "addressNonceIndices",
-    "inputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint96",
-        "internalType": "uint96"
       }
     ],
     "stateMutability": "view"
@@ -146,7 +127,7 @@
   },
   {
     "type": "function",
-    "name": "getGasCommissionPercentage",
+    "name": "getRelayGasCommissionPercentage",
     "inputs": [],
     "outputs": [
       {
@@ -159,13 +140,26 @@
   },
   {
     "type": "function",
-    "name": "getGasToken",
+    "name": "getRelayGasToken",
     "inputs": [],
     "outputs": [
       {
         "name": "",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getRelayGasUsage",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint32",
+        "internalType": "uint32"
       }
     ],
     "stateMutability": "view"
@@ -189,7 +183,7 @@
       {
         "name": "",
         "type": "tuple[]",
-        "internalType": "struct TransferSchedulerV1.QueuedTransferRecord[]",
+        "internalType": "struct TransferSchedulerV3.QueuedTransferRecord[]",
         "components": [
           {
             "name": "nonce",
@@ -219,34 +213,15 @@
         "name": "_relayGasCommissionPercentage",
         "type": "uint8",
         "internalType": "uint8"
+      },
+      {
+        "name": "_relayGasUsage",
+        "type": "uint32",
+        "internalType": "uint32"
       }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "nonceBitmap",
-    "inputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
   },
   {
     "type": "function",

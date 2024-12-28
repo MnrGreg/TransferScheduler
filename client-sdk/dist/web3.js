@@ -37,14 +37,15 @@ function createTypedData(chainId, scheduledTransfer) {
 exports.createTypedData = createTypedData;
 async function getGasTokenAddress(web3) {
     const scheduledTransferContract = new web3.eth.Contract(constants_1.transferSchedulerABI, constants_1.TransferSchedulerContractAddress);
-    const gasTokenAddress = await scheduledTransferContract.methods.getGasToken().call();
+    const gasTokenAddress = await scheduledTransferContract.methods.getRelayGasToken().call();
     return gasTokenAddress;
 }
 exports.getGasTokenAddress = getGasTokenAddress;
 async function getRelayCharge(web3, maxBaseFee) {
     const scheduledTransferContract = new web3.eth.Contract(constants_1.transferSchedulerABI, constants_1.TransferSchedulerContractAddress);
-    const gasCommissionPercentage = await scheduledTransferContract.methods.getGasCommissionPercentage().call();
-    const relayCharge = maxBaseFee * 140000 * (1 + Number(gasCommissionPercentage) / 100);
+    const relayGasCommissionPercentage = await scheduledTransferContract.methods.getRelayGasCommissionPercentage().call();
+    const relayGasUsage = await scheduledTransferContract.methods.relayGasUsage().call();
+    const relayCharge = maxBaseFee * Number(relayGasUsage) * (1 + Number(relayGasCommissionPercentage) / 100);
     return relayCharge;
 }
 exports.getRelayCharge = getRelayCharge;

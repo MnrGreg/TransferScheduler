@@ -1,5 +1,9 @@
 export declare const TransferSchedulerContractAddress = "0xbB0b174A5459af5787a54C91EeB957cb9b14bc56";
 export declare const transferSchedulerABI: readonly [{
+    readonly type: "constructor";
+    readonly inputs: readonly [];
+    readonly stateMutability: "nonpayable";
+}, {
     readonly type: "function";
     readonly name: "UPGRADE_INTERFACE_VERSION";
     readonly inputs: readonly [];
@@ -96,7 +100,7 @@ export declare const transferSchedulerABI: readonly [{
     readonly stateMutability: "nonpayable";
 }, {
     readonly type: "function";
-    readonly name: "getGasCommissionPercentage";
+    readonly name: "getRelayGasCommissionPercentage";
     readonly inputs: readonly [];
     readonly outputs: readonly [{
         readonly name: "";
@@ -106,12 +110,22 @@ export declare const transferSchedulerABI: readonly [{
     readonly stateMutability: "view";
 }, {
     readonly type: "function";
-    readonly name: "getGasToken";
+    readonly name: "getRelayGasToken";
     readonly inputs: readonly [];
     readonly outputs: readonly [{
         readonly name: "";
         readonly type: "address";
         readonly internalType: "address";
+    }];
+    readonly stateMutability: "view";
+}, {
+    readonly type: "function";
+    readonly name: "getRelayGasUsage";
+    readonly inputs: readonly [];
+    readonly outputs: readonly [{
+        readonly name: "";
+        readonly type: "uint32";
+        readonly internalType: "uint32";
     }];
     readonly stateMutability: "view";
 }, {
@@ -129,7 +143,7 @@ export declare const transferSchedulerABI: readonly [{
     readonly outputs: readonly [{
         readonly name: "";
         readonly type: "tuple[]";
-        readonly internalType: "struct TransferSchedulerV2.QueuedTransferRecord[]";
+        readonly internalType: "struct TransferSchedulerV3.QueuedTransferRecord[]";
         readonly components: readonly [{
             readonly name: "nonce";
             readonly type: "uint96";
@@ -152,6 +166,10 @@ export declare const transferSchedulerABI: readonly [{
         readonly name: "_relayGasCommissionPercentage";
         readonly type: "uint8";
         readonly internalType: "uint8";
+    }, {
+        readonly name: "_relayGasUsage";
+        readonly type: "uint32";
+        readonly internalType: "uint32";
     }];
     readonly outputs: readonly [];
     readonly stateMutability: "nonpayable";

@@ -5,11 +5,4 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   base: "/TransferScheduler/",
-  // build: {
-  //   rollupOptions: {
-  //     external: [
-  //       "transfer-scheduler-sdk"
-  //     ],
-  //   },
-  // },
 })

@@ -43,7 +43,7 @@ export function QueueTransferTransaction() {
             const token = await readContract(config, {
                 abi: transferSchedulerABI,
                 address: TransferSchedulerContractAddress,
-                functionName: 'getGasToken',
+                functionName: 'getRelayGasToken',
             }) as `0x${string}`;
             setRelayGasToken(token);
 
@@ -65,7 +65,7 @@ export function QueueTransferTransaction() {
             const percentage = await readContract(config, {
                 abi: transferSchedulerABI,
                 address: TransferSchedulerContractAddress,
-                functionName: 'getGasCommissionPercentage',
+                functionName: 'getRelayGasCommissionPercentage',
             });
             setRelayGasCommissionPercentage(Number(percentage));
         } catch (err) {
@@ -305,7 +305,7 @@ export function QueueTransferTransaction() {
                     <tr>
                         <td style={{ border: '1px solid #ccc', padding: '8px' }}><span title={relayGasToken as string}>{relayGasTokenName} (gas token)</span></td>
                         <td style={{ border: '1px solid #ccc', padding: '8px' }}>{formatEther(relayCommissionTotal)}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '8px' }}><span title={`fee = block.basefee * gas (140k) * relay commission (${relayGasCommissionPercentage}%)`}>future relayer</span></td>
+                        <td style={{ border: '1px solid #ccc', padding: '8px' }}><span title={`fee = block.basefee * gas (380k) * relay commission (${relayGasCommissionPercentage}%)`}>future relayer</span></td>
                         <td style={{ border: '1px solid #ccc', padding: '8px' }}>
                             {maxBaseFee ? `${maxBaseFee}` : '-'}
                         </td>

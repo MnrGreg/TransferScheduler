@@ -3,6 +3,11 @@ export const TransferSchedulerContractAddress = '0xbB0b174A5459af5787a54C91EeB95
 
 export const transferSchedulerABI = [
     {
+        "type": "constructor",
+        "inputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
         "type": "function",
         "name": "UPGRADE_INTERFACE_VERSION",
         "inputs": [],
@@ -125,7 +130,7 @@ export const transferSchedulerABI = [
     },
     {
         "type": "function",
-        "name": "getGasCommissionPercentage",
+        "name": "getRelayGasCommissionPercentage",
         "inputs": [],
         "outputs": [
             {
@@ -138,13 +143,26 @@ export const transferSchedulerABI = [
     },
     {
         "type": "function",
-        "name": "getGasToken",
+        "name": "getRelayGasToken",
         "inputs": [],
         "outputs": [
             {
                 "name": "",
                 "type": "address",
                 "internalType": "address"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "getRelayGasUsage",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint32",
+                "internalType": "uint32"
             }
         ],
         "stateMutability": "view"
@@ -168,7 +186,7 @@ export const transferSchedulerABI = [
             {
                 "name": "",
                 "type": "tuple[]",
-                "internalType": "struct TransferSchedulerV2.QueuedTransferRecord[]",
+                "internalType": "struct TransferSchedulerV3.QueuedTransferRecord[]",
                 "components": [
                     {
                         "name": "nonce",
@@ -198,6 +216,11 @@ export const transferSchedulerABI = [
                 "name": "_relayGasCommissionPercentage",
                 "type": "uint8",
                 "internalType": "uint8"
+            },
+            {
+                "name": "_relayGasUsage",
+                "type": "uint32",
+                "internalType": "uint32"
             }
         ],
         "outputs": [],

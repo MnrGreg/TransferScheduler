@@ -8,7 +8,7 @@ import {IScheduledTransfer} from "contracts/src/interfaces/IScheduledTransfer.so
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
-import {TransferSchedulerV2} from "contracts/src/TransferSchedulerV2.sol";
+import {TransferSchedulerV3} from "contracts/src/TransferSchedulerV3.sol";
 import {
     TransferTooLate,
     TransferTooEarly,
@@ -31,7 +31,7 @@ contract TransferSchedulerTest is Test {
         bytes signature
     );
 
-    TransferSchedulerV2 transferScheduler;
+    TransferSchedulerV3 transferScheduler;
     IScheduledTransfer.ScheduledTransferDetails scheduledTransferDetails;
 
     bytes32 DOMAIN_SEPARATOR;
@@ -44,6 +44,7 @@ contract TransferSchedulerTest is Test {
     address relayAddress = vm.addr(relayPrivateKey);
     uint128 amount = 5 ** 18;
     uint8 relayGasCommissionPercentage;
+    uint32 relayGasUsage;
     MockERC20 token0;
     IERC20 public gasToken;
 
@@ -59,14 +60,17 @@ contract TransferSchedulerTest is Test {
         vm.fee(8000000);
 
         address proxy = Upgrades.deployUUPSProxy(
-            "TransferSchedulerV2.sol",
-            abi.encodeCall(TransferSchedulerV2.initialize, (address(0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14), 100))
+            "TransferSchedulerV3.sol",
+            abi.encodeCall(
+                TransferSchedulerV3.initialize, (address(0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14), 50, 380000)
+            )
         );
 
-        transferScheduler = TransferSchedulerV2(proxy);
+        transferScheduler = TransferSchedulerV3(proxy);
 
-        relayGasCommissionPercentage = transferScheduler.getGasCommissionPercentage();
-        address gasTokenAddress = transferScheduler.getGasToken();
+        relayGasCommissionPercentage = transferScheduler.getRelayGasCommissionPercentage();
+        relayGasUsage = transferScheduler.getRelayGasUsage();
+        address gasTokenAddress = transferScheduler.getRelayGasToken();
         // Get domain data
         (
             bytes1 fields,
@@ -131,7 +135,7 @@ contract TransferSchedulerTest is Test {
             owner, nonce, address(token0), recipientAddress, amount, notBeforeDate, notAfterDate, maxBaseFee, signature
         );
 
-        TransferSchedulerV2.QueuedTransferRecord[] memory records =
+        TransferSchedulerV3.QueuedTransferRecord[] memory records =
             transferScheduler.getScheduledTransfers(owner, false);
         assertEq(nonce, records[0].nonce);
     }
@@ -150,12 +154,12 @@ contract TransferSchedulerTest is Test {
         console.log("owner gasToken balance: less", block.basefee * 100000 * (1 + relayGasCommissionPercentage / 100));
         assertEq(
             gasToken.balanceOf(owner),
-            startBalanceFrom1 - block.basefee * 140000 * (1 + relayGasCommissionPercentage / 100)
+            startBalanceFrom1 - block.basefee * relayGasUsage * (1 + relayGasCommissionPercentage / 100)
         );
         assertEq(token0.balanceOf(recipientAddress), startBalanceTo0 + amount);
         assertEq(
             gasToken.balanceOf(relayAddress),
-            startBalanceTo1 + block.basefee * 140000 * (1 + relayGasCommissionPercentage / 100)
+            startBalanceTo1 + block.basefee * relayGasUsage * (1 + relayGasCommissionPercentage / 100)
         );
     }
 
