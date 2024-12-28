@@ -1,9 +1,9 @@
 name: Contract tests
 on: 
   push:
-    # paths:
-    #   - contracts/**
-    #   - test/**
+    paths:
+      - contracts/**
+      - test/**
 
 jobs:
   check:
@@ -18,9 +18,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
 
       - name: Run tests
-        run: |
-          tree ./contracts -L 3
-          forge test -vvvvv --fork-url https://sepolia.drpc.org
+        run: forge test -vv --fork-url https://sepolia.drpc.org
 
       - name: Run snapshot
-        run: forge snapshot
+        run: forge snapshot -vv --fork-url https://sepolia.drpc.org
