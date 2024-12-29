@@ -67,6 +67,7 @@ const GetUncompletedTransfers = () => {
     address: TransferSchedulerContractAddress,
     abi: transferSchedulerABI,
     eventName: 'TransferScheduled',
+    poll: true,
     onLogs: () => setUpdateTrigger(prev => prev + 1),
   });
 
@@ -74,6 +75,7 @@ const GetUncompletedTransfers = () => {
     address: TransferSchedulerContractAddress,
     abi: transferSchedulerABI,
     eventName: 'TransferExecuted',
+    poll: true,
     onLogs: () => setUpdateTrigger(prev => prev + 1),
   });
 
@@ -240,6 +242,7 @@ const GetCompletedTransfers = () => {
     args: {
       owner: address
     },
+    poll: true,
     onLogs: () => setUpdateTrigger(prev => prev + 1),
   });
 
@@ -250,6 +253,7 @@ const GetCompletedTransfers = () => {
     args: {
       owner: address
     },
+    poll: true,
     onLogs: () => setUpdateTrigger(prev => prev + 1),
   });
 
@@ -420,6 +424,7 @@ function App() {
     args: {
       owner: address
     },
+    poll: true,
     onLogs(logs) {
       console.log(logs[0].args);
       setEventLogs(transferScheduledEventLogs);
