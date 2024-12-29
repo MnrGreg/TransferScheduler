@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - frontend/**
+      - client-sdk/**      
 
 permissions:
   contents: write
@@ -19,6 +20,8 @@ jobs:
       - name: pack client-sdk
         run: |
           cd client-sdk
+          npm ci
+          npm run build
           npm pack
 
       - name: Install and Build

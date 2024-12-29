@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 import "forge-std/Script.sol";
-import "../src/TransferSchedulerV1.sol";
+import "../src/TransferSchedulerV3.sol";
 import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
 contract DeployScript is Script {
@@ -11,8 +11,10 @@ contract DeployScript is Script {
 
         // Deploy the upgradeable contract
         address proxy = Upgrades.deployUUPSProxy(
-            "TransferSchedulerV1.sol",
-            abi.encodeCall(TransferSchedulerV1.initialize, (address(0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14), 100))
+            "TransferSchedulerV3.sol",
+            abi.encodeCall(
+                TransferSchedulerV3.initialize, (address(0x4200000000000000000000000000000000000006), 50, 380000)
+            )
         );
 
         // Get the implementation address

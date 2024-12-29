@@ -186,7 +186,7 @@ export const transferSchedulerABI = [
             {
                 "name": "",
                 "type": "tuple[]",
-                "internalType": "struct TransferSchedulerV3.QueuedTransferRecord[]",
+                "internalType": "struct TransferSchedulerV4.QueuedTransferRecord[]",
                 "components": [
                     {
                         "name": "nonce",

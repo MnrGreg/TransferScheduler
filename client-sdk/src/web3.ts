@@ -49,7 +49,7 @@ export async function getRelayCharge(web3: Web3, maxBaseFee: number) {
     const scheduledTransferContract = new web3.eth.Contract(transferSchedulerABI, TransferSchedulerContractAddress);
     const relayGasCommissionPercentage: bigint = await scheduledTransferContract.methods.getRelayGasCommissionPercentage().call();
     const relayGasUsage: bigint = await scheduledTransferContract.methods.relayGasUsage().call();
-    const relayCharge = maxBaseFee * Number(relayGasUsage) * (1 + Number(relayGasCommissionPercentage) / 100);
+    const relayCharge = (maxBaseFee * Number(relayGasUsage) * (100 + Number(relayGasCommissionPercentage)) / 100);
     return relayCharge;
 }
 

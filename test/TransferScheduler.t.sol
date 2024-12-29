@@ -8,7 +8,7 @@ import {IScheduledTransfer} from "contracts/src/interfaces/IScheduledTransfer.so
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
-import {TransferSchedulerV3} from "contracts/src/TransferSchedulerV3.sol";
+import {TransferSchedulerV4} from "contracts/src/TransferSchedulerV4.sol";
 import {
     TransferTooLate,
     TransferTooEarly,
@@ -31,7 +31,7 @@ contract TransferSchedulerTest is Test {
         bytes signature
     );
 
-    TransferSchedulerV3 transferScheduler;
+    TransferSchedulerV4 transferScheduler;
     IScheduledTransfer.ScheduledTransferDetails scheduledTransferDetails;
 
     bytes32 DOMAIN_SEPARATOR;
@@ -60,13 +60,13 @@ contract TransferSchedulerTest is Test {
         vm.fee(8000000);
 
         address proxy = Upgrades.deployUUPSProxy(
-            "TransferSchedulerV3.sol",
+            "TransferSchedulerV4.sol",
             abi.encodeCall(
-                TransferSchedulerV3.initialize, (address(0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14), 50, 380000)
+                TransferSchedulerV4.initialize, (address(0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14), 50, 380000)
             )
         );
 
-        transferScheduler = TransferSchedulerV3(proxy);
+        transferScheduler = TransferSchedulerV4(proxy);
 
         relayGasCommissionPercentage = transferScheduler.getRelayGasCommissionPercentage();
         relayGasUsage = transferScheduler.getRelayGasUsage();
@@ -135,7 +135,7 @@ contract TransferSchedulerTest is Test {
             owner, nonce, address(token0), recipientAddress, amount, notBeforeDate, notAfterDate, maxBaseFee, signature
         );
 
-        TransferSchedulerV3.QueuedTransferRecord[] memory records =
+        TransferSchedulerV4.QueuedTransferRecord[] memory records =
             transferScheduler.getScheduledTransfers(owner, false);
         assertEq(nonce, records[0].nonce);
     }
@@ -151,15 +151,18 @@ contract TransferSchedulerTest is Test {
         vm.stopPrank();
 
         assertEq(token0.balanceOf(owner), startBalanceFrom0 - amount);
-        console.log("owner gasToken balance: less", block.basefee * 100000 * (1 + relayGasCommissionPercentage / 100));
+        console.log(
+            "owner gasToken balance: less",
+            ((block.basefee * relayGasUsage * (100 + relayGasCommissionPercentage)) / 100)
+        );
         assertEq(
             gasToken.balanceOf(owner),
-            startBalanceFrom1 - block.basefee * relayGasUsage * (1 + relayGasCommissionPercentage / 100)
+            startBalanceFrom1 - ((block.basefee * relayGasUsage * (100 + relayGasCommissionPercentage)) / 100)
         );
         assertEq(token0.balanceOf(recipientAddress), startBalanceTo0 + amount);
         assertEq(
             gasToken.balanceOf(relayAddress),
-            startBalanceTo1 + block.basefee * relayGasUsage * (1 + relayGasCommissionPercentage / 100)
+            startBalanceTo1 + ((block.basefee * relayGasUsage * (100 + relayGasCommissionPercentage)) / 100)
         );
     }
 

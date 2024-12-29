@@ -10,9 +10,9 @@ The TransferScheduler is a public-good smart contract to facilitate scheduled ER
 ## Features
 - **Non-Monotonic Nonces**: Allows for non-sequential scheduling of transactions at arbitrary points in time, independent of previous transactions.
 - **Transfer Restrictions**: `notBeforeDate` and `notAfterDate` dates ensure that transfers are only executed within the valid time frame. `block.timestamp` is used for comparison.
-- **Relayer Gas Compensation**: The contract [compensates](./contracts/src/TransferSchedulerV2.sol#L185-L190) relayers for their ETH gas spend in WETH. An additional gas percentage commission is added to compensate relayers for their `MaxPriorityFeePerGas` tip, compute costs, and opportunity costs.
-  - The gas compensation is calculated as `block.basefee * 140000 (gas usage) * (1 + relayGasCommissionPercentage / 100)`.
-  - `relayGasCommissionPercentage` is initialized at contract deployment for each chain (100% for Sepolia).
+- **Relayer Gas Compensation**: The contract [compensates](./contracts/src/TransferSchedulerV4.sol#L214-L219) relayers for their ETH gas spend in WETH. An additional gas percentage commission is added to compensate relayers for their `MaxPriorityFeePerGas` tip, compute costs, and opportunity costs.
+  - The gas compensation is calculated as `block.basefee * 140000 (gas usage) * (100 + relayGasCommissionPercentage) / 100`.
+  - `relayGasCommissionPercentage` is initialized at contract deployment for each chain (50% on Base Mainnet).
   - The WETH payment to the relayer is included automatically as part of the contract transfer.
   - If insufficient WETH is available, the relayer will not broadcast the transaction.
 - **Gas Price Threshold**: Transfers will not execute if the network gas price `block.basefee` is higher than the user specified threshold `maxBaseFee`.
@@ -22,10 +22,11 @@ The TransferScheduler is a public-good smart contract to facilitate scheduled ER
 ### Smart Contract
 The core functionality is implemented in the TransferScheduler smart contract, which includes methods for:
 - Queuing signed scheduled transfers (address, nonce, nonce status) - 70k gas
-- [Verifies](./contracts/src/TransferSchedulerV2.sol#L179) the user [EIP712 ScheduledTransfer typed message signature](./client-sdk/src/web3.ts#L9-L10)
-- Executing scheduled transfers - 130k gas
-- [Retrieving](./contracts/src/TransferSchedulerV2.sol#L136) the [relay gas token](./contracts/src/TransferSchedulerV2.sol#L29)
-- [Retrieving](./contracts/src/TransferSchedulerV2.sol#L132) the [relay gas commission percentage](./contracts/src/TransferSchedulerV2.sol#L30)
+- [Verifies](./contracts/src/TransferSchedulerV4.sol#L179) the user [EIP712 ScheduledTransfer typed message signature](./client-sdk/src/web3.ts#L9-L10)
+- Executing scheduled transfers - 130k gas with EOA | 380k gas with Smart Account
+- [Retrieving](./contracts/src/TransferSchedulerV4.sol#L153) the [relay gas token](./contracts/src/TransferSchedulerV4.sol#L29)
+- [Retrieving](./contracts/src/TransferSchedulerV4.sol#L143) the [relay gas usage](./contracts/src/TransferSchedulerV4.sol#L29)
+- [Retrieving](./contracts/src/TransferSchedulerV4.sol#L148) the [relay gas commission percentage](./contracts/src/TransferSchedulerV4.sol#L29)
 
 ### Frontend
 The frontend provides an example user interface for:
@@ -34,7 +35,7 @@ The frontend provides an example user interface for:
 - Watching for TransferScheduled events
 - Listing historical completed or future uncompleted transfers
 
-An demo example is published at [https://mnrgreg.github.io/TransferScheduler/](https://mnrgreg.github.io/TransferScheduler/) which uses the Sepolia chain and Uniswap's [Sepolia WETH](https://sepolia.etherscan.io/address/0xfff9976782d46cc05630d1f6ebab18b2324d6b14) as the relay gas token.
+An demo example is published at [https://mnrgreg.github.io/TransferScheduler/](https://mnrgreg.github.io/TransferScheduler/) which uses the [Base Mainnet](https://basescan.org/address/0x9A49A57903B1D001353e521f9236F19EC54d3143#readContract) with `WETH` as the relay gas token.
 
 ### Client SDK
 The client SDK provides a JavaScript library for interacting with the TransferScheduler contract. It includes functions for:

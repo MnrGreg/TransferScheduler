@@ -4,13 +4,10 @@ import * as dotenv from 'dotenv'
 dotenv.config()
 
 async function main() {
-    if (!process.env.RPC_URL) {
-        throw new Error(`RPC_URL env required`)
+    if (!process.env.RPC_URL || !process.env.PRIVATE_KEY || !process.env.MAX_PRIORITY_FEE_PER_GAS) {
+        throw new Error(`RPC_URL, PRIVATE_KEY, MAX_PRIORITY_FEE_PER_GAS envs required`)
     }
 
-    if (!process.env.PRIVATE_KEY) {
-        throw new Error('PRIVATE_KEY env required');
-    }
     let headers = {};
     if (!process.env.RPC_URL_HEADER_KEY || !process.env.RPC_URL_HEADER_VALUE) headers = {}
     else headers = {
@@ -102,7 +99,7 @@ async function main() {
                     ).call({
                         from: address,
                         gas: web3.utils.toHex(relayGasUsage),
-                        maxPriorityFeePerGas: "1000000",    //0.001 Gwei
+                        maxPriorityFeePerGas: process.env.MAX_PRIORITY_FEE_PER_GAS,
                         maxFeePerGas: feeData.maxFeePerGas.toString()
                     });
                     console.log('Contract simulation successful for Nonce:', transferScheduledEventLog.nonce);
@@ -117,7 +114,7 @@ async function main() {
             const tx = await transferSchedulerContract.methods.executeScheduledTransfer(scheduledTransfer, transferScheduledEventLog.signature).send({
                 from: address,
                 gas: web3.utils.toHex(relayGasUsage),
-                maxPriorityFeePerGas: "1000000",    //0.001 Gwei
+                maxPriorityFeePerGas: process.env.MAX_PRIORITY_FEE_PER_GAS,
                 maxFeePerGas: feeData.maxFeePerGas.toString()
             });
             console.log("Transfer executed for Nonce:", transferScheduledEventLog.nonce, "TxHash:", tx.transactionHash);

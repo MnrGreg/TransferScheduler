@@ -2,9 +2,10 @@
 pragma solidity ^0.8.27;
 
 import "forge-std/Script.sol";
-import "../src/TransferSchedulerV1.sol";
-import "../src/TransferSchedulerV2.sol";
+// import "../src/TransferSchedulerV1.sol";
+// import "../src/TransferSchedulerV2.sol";
 import "../src/TransferSchedulerV3.sol";
+import "../src/TransferSchedulerV4.sol";
 import {Upgrades, Options} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
 contract UpgradeScript is Script {
@@ -14,13 +15,13 @@ contract UpgradeScript is Script {
         address proxy = address(0xbB0b174A5459af5787a54C91EeB957cb9b14bc56);
 
         Options memory opts;
-        opts.referenceContract = "TransferSchedulerV2.sol:TransferSchedulerV2";
+        opts.referenceContract = "TransferSchedulerV3.sol:TransferSchedulerV3";
 
         Upgrades.upgradeProxy(
             proxy,
-            "TransferSchedulerV3.sol:TransferSchedulerV3",
+            "TransferSchedulerV4.sol:TransferSchedulerV4",
             abi.encodeCall(
-                TransferSchedulerV3.initialize, (address(0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14), 50, 380000)
+                TransferSchedulerV4.initialize, (address(0x4200000000000000000000000000000000000006), 50, 380000)
             ),
             opts
         );

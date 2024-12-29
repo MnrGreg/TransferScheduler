@@ -21,7 +21,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 // Main contract definition
-contract TransferSchedulerV3 is IScheduledTransfer, EIP712Upgradeable, UUPSUpgradeable, OwnableUpgradeable {
+contract TransferSchedulerV4 is IScheduledTransfer, EIP712Upgradeable, UUPSUpgradeable, OwnableUpgradeable {
     using SignatureVerification for bytes; // Allows bytes to use signature verification functions
     using SafeTransferLib for ERC20; // Allows ERC20 tokens to use safe transfer functions
     using ScheduledTransferHash for ScheduledTransferDetails; // Allows ScheduledTransferDetails to use hashing functions
@@ -39,12 +39,9 @@ contract TransferSchedulerV3 is IScheduledTransfer, EIP712Upgradeable, UUPSUpgra
     // Initialize function to set up the contract state
     function initialize(address _relayGasToken, uint8 _relayGasCommissionPercentage, uint32 _relayGasUsage)
         public
-        initializer
+        reinitializer(2)
     {
-        __Ownable_init(msg.sender);
-        __UUPSUpgradeable_init();
-        __EIP712_init("TransferSchedulerV1", "1");
-        relayGasToken = _relayGasToken; // Set the gas token address
+        relayGasToken = _relayGasToken;
         relayGasCommissionPercentage = _relayGasCommissionPercentage; // Set the gas commission percentage
         relayGasUsage = _relayGasUsage; // Set the gas usage amount
     }
@@ -196,7 +193,7 @@ contract TransferSchedulerV3 is IScheduledTransfer, EIP712Upgradeable, UUPSUpgra
 
         // Check the allowance of the gas token for the relay
         uint256 spenderGasTokenAllowance = ERC20(relayGasToken).allowance(scheduledTransferDetails.owner, address(this));
-        if (block.basefee * relayGasUsage * (1 + relayGasCommissionPercentage / 100) > spenderGasTokenAllowance) {
+        if (((block.basefee * relayGasUsage * (100 + relayGasCommissionPercentage)) / 100) > spenderGasTokenAllowance) {
             revert InsufficientGasTokenAllowance(spenderGasTokenAllowance);
         }
 
@@ -218,7 +215,7 @@ contract TransferSchedulerV3 is IScheduledTransfer, EIP712Upgradeable, UUPSUpgra
             ERC20(relayGasToken).safeTransferFrom(
                 scheduledTransferDetails.owner,
                 msg.sender,
-                block.basefee * relayGasUsage * (1 + relayGasCommissionPercentage / 100)
+                ((block.basefee * relayGasUsage * (100 + relayGasCommissionPercentage)) / 100)
             );
         }
 

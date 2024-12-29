@@ -143,7 +143,7 @@ export declare const transferSchedulerABI: readonly [{
     readonly outputs: readonly [{
         readonly name: "";
         readonly type: "tuple[]";
-        readonly internalType: "struct TransferSchedulerV3.QueuedTransferRecord[]";
+        readonly internalType: "struct TransferSchedulerV4.QueuedTransferRecord[]";
         readonly components: readonly [{
             readonly name: "nonce";
             readonly type: "uint96";
