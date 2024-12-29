@@ -4,6 +4,8 @@ USDC_CONTRACT?=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 USDC_HOLDER?=0xfCF7129A8a69a2BD7f2f300eFc352342D6c1638b
 WETH_CONTRACT?=0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14
 
+TSCONTRACT?=0xbB0b174A5459af5787a54C91EeB957cb9b14bc56
+
 # Anvil wallet addresses
 ADDRESS=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 ADDRESSKEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
@@ -55,14 +57,14 @@ deploy-transferscheduler-contract:
 	sed -i '' -e "s/TransferSchedulerContractAddress = '.*';/TransferSchedulerContractAddress = '${TSCONTRACT}';/" client-sdk/src/constants.ts
 
 build-client-sdk:
-	cd client-sdk && npm run build && npm pack && cp transfer-scheduler-sdk-*.tgz ../relay
+	cd client-sdk && npm install && npm run build && npm pack && cp transfer-scheduler-sdk-*.tgz ../relay
 
 start-relay: 
 	@echo "Starting relay"
 	cd relay && npm install && (RPC_URL=ws://localhost:8545 PRIVATE_KEY=${SIGNERKEY} ts-node relay-worker.ts & echo $$! >> ../$(PIDFILE))
 
 start-webclient:
-	cd frontend && npm install && (npm run dev & echo $$! >> ../$(PIDFILE))
+	cd frontend && npm install ../client-sdk/transfer-scheduler-sdk-1.0.0.tgz && (npm run dev & echo $$! >> ../$(PIDFILE))
 
 start-example-app:
 	cd client-sdk/example-app && (ts-node index.ts & echo $$! >> ../$(PIDFILE))

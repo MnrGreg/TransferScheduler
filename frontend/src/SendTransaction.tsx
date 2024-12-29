@@ -23,9 +23,8 @@ export function QueueTransferTransaction() {
     const [relayGasTokenName, setRelayGasTokenName] = React.useState<string>('');
     const [relayGasCommissionPercentage, setRelayGasCommissionPercentage] = useState<number | null>(null);
     const [token, setToken] = React.useState<`0x${string}` | null>(null);
-    const [amount, setAmount] = useState<bigint | null>(null);
-    const [calculatedAmount, setCalculatedAmount] = useState<bigint | null>(null);
-
+    const [amountInput, setAmountInput] = useState<string>(''); // Temporary state for input
+    const [amount, setAmount] = useState<bigint | null>(null); // State for BigInt amount
     const { data: gasPrice } = useGasPrice();
 
     React.useEffect(() => {
@@ -77,24 +76,28 @@ export function QueueTransferTransaction() {
         fetchRelayGasCommissionPercentage();
     }, []);
 
-    React.useEffect(() => {
-        async function calculateAmount() {
-            if (token && amount) {
-                try {
-                    const decimals = await getTokenDecimals(token);
-                    const calculated = BigInt(Math.floor(Number(amount) * Math.pow(10, decimals)));
-                    setCalculatedAmount(calculated !== undefined ? calculated : null);
-                } catch (error) {
-                    console.error('Error calculating amount with decimals:', error);
-                }
-            }
-        }
-        calculateAmount();
-    }, [token, amount]);
+    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setAmountInput(e.target.value); // Update the input value
+    };
 
-    // queueTransfer gas currently ~75,000
+    const handleAmountBlur = async () => {
+        const value = amountInput;
+        // Validate and convert to BigInt
+        if (value !== '' && token !== null) {
+            const parsedValue = parseFloat(value);
+            if (!isNaN(parsedValue)) {
+                const decimals = await getTokenDecimals(token);
+                setAmount(BigInt((parsedValue * Math.pow(10, decimals)).toString())); // Convert to BigInt with decimals
+            } else {
+                setAmount(null); // Reset if invalid
+            }
+        } else {
+            setAmount(null); // Reset if empty
+        }
+    };
+
     const relayCommissionTotal = relayGasCommissionPercentage !== null && gasPrice !== undefined
-        ? BigInt(75000) * BigInt(relayGasCommissionPercentage) * gasPrice / BigInt(100)
+        ? BigInt(380000) * (BigInt(100) + BigInt(relayGasCommissionPercentage)) * gasPrice / BigInt(100)
         : BigInt(0);
 
     const handleTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -246,11 +249,12 @@ export function QueueTransferTransaction() {
                         <td style={{ border: '1px solid #ccc' }}>
                             <input
                                 name="amount"
-                                type="number"
-                                placeholder="0.00"
+                                type="text"
+                                placeholder="0.000"
                                 style={{ width: '100px', border: 'none', padding: '8px', fontSize: '14px' }}
-                                value={amount !== null ? amount.toString() : ''}
-                                onChange={(e) => setAmount(e.target.value !== '' ? BigInt(e.target.value) : null)}
+                                value={amountInput}
+                                onChange={handleAmountChange}
+                                onBlur={handleAmountBlur}
                                 required
                             />
                         </td>
@@ -327,7 +331,7 @@ export function QueueTransferTransaction() {
             {error && <div>Error: {error.message}</div>}
             <TokenAllowances
                 transferToken={token}
-                transferAmount={calculatedAmount}
+                transferAmount={amount}
                 gasToken={relayGasToken}
                 gasAmount={relayCommissionTotal}
             />
