@@ -18,6 +18,9 @@ The TransferScheduler is a public-good smart contract to facilitate scheduled ER
 - **Gas Price Threshold**: Transfers will not execute if the network gas price `block.basefee` is higher than the user specified threshold `maxBaseFee`.
 - **Offchain queuing**: ScheduledTransfer signed messages can be provided directly to recipients or third party relays for offchain queuing, thereby avoid onchain queueing gas cost (70k gas).
 
+## Frontend video on Base Mainnet
+[![TransferScheduler frontend on Base Mainnet](https://img.youtube.com/vi/K4cCaMCihhc/0.jpg)](https://youtu.be/K4cCaMCihhc)
+
 ## Components
 ### Smart Contract
 The core functionality is implemented in the TransferScheduler smart contract, which includes methods for:
