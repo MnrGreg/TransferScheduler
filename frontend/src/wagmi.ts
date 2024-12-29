@@ -10,7 +10,7 @@ export const config = createConfig({
     //walletConnect({ projectId: import.meta.env.VITE_WC_PROJECT_ID }),
   ],
   transports: {
-    [base.id]: http('https://mainnet.base.org'),
+    [base.id]: http('https://base.drpc.org'),
     [sepolia.id]: http('https://sepolia.drpc.org'),
     [foundry.id]: http('http://localhost:8545'),
   },
