@@ -12,7 +12,6 @@ import { getTokenSymbol, getTokenDecimals } from './App';
 import { formatGwei, formatEther, parseGwei } from 'viem'
 import { TokenAllowances } from './TokenAllowances';
 
-
 export function QueueTransferTransaction() {
     const { address, chainId } = useAccount();
     const [hash, setHash] = useState<`0x${string}` | undefined>();
@@ -336,6 +335,5 @@ export function QueueTransferTransaction() {
                 gasAmount={relayCommissionTotal}
             />
         </form >
-
     );
 }

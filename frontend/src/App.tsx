@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useAccount, useConnect, useDisconnect, useWatchContractEvent } from 'wagmi';
 import { QueueTransferTransaction } from './SendTransaction';
 import { readContract } from '@wagmi/core';
@@ -220,7 +220,7 @@ const GetUncompletedTransfers = () => {
             </tbody>
           </table>
         ) : (
-          'Loading...'
+          'Watching...'
         )}
     </div>
   );
@@ -399,7 +399,7 @@ const GetCompletedTransfers = () => {
             </tbody>
           </table>
         ) : (
-          'Loading...'
+          'Watching...'
         )}
     </div >
   );
@@ -409,52 +409,52 @@ function App() {
   const { address, chainId, status: accountStatus } = useAccount();
   const { connect, connectors, error: connectError, status: isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
-  const [eventLogs, setEventLogs] = React.useState<TransferScheduledEventLogs | null>(null);
+  // const [eventLogs, setEventLogs] = React.useState<TransferScheduledEventLogs | null>(null);
 
-  const [tokenSymbols, setTokenNames] = React.useState<Record<string, string>>({});
-  const [tokenDecimals, setTokenDecimals] = React.useState<Record<string, number>>({});
+  // const [tokenSymbols, setTokenNames] = React.useState<Record<string, string>>({});
+  //const [tokenDecimals, setTokenDecimals] = React.useState<Record<string, number>>({});
 
 
 
-  const transferScheduledEventLogs: TransferScheduledEventLog[] = [];
-  useWatchContractEvent({
-    address: TransferSchedulerContractAddress,
-    abi: transferSchedulerABI,
-    eventName: 'TransferScheduled',
-    args: {
-      owner: address
-    },
-    poll: true,
-    onLogs(logs) {
-      console.log(logs[0].args);
-      setEventLogs(transferScheduledEventLogs);
-    }
-  })
+  // const transferScheduledEventLogs: TransferScheduledEventLog[] = [];
+  // useWatchContractEvent({
+  //   address: TransferSchedulerContractAddress,
+  //   abi: transferSchedulerABI,
+  //   eventName: 'TransferScheduled',
+  //   args: {
+  //     owner: address
+  //   },
+  //   poll: true,
+  //   onLogs(logs) {
+  //     console.log(logs[0].args);
+  //     setEventLogs(transferScheduledEventLogs);
+  //   }
+  // })
 
-  useEffect(() => {
-    async function fetchTokenInfo() {
-      if (!eventLogs) return;
+  // useEffect(() => {
+  //   async function fetchTokenInfo() {
+  //     if (!eventLogs) return;
 
-      const newTokenSymbols: Record<string, string> = {};
-      const newTokenDecimals: Record<string, number> = {};
+  //     const newTokenSymbols: Record<string, string> = {};
+  //     const newTokenDecimals: Record<string, number> = {};
 
-      for (const log of eventLogs) {
-        if (!tokenSymbols[log.token]) {
-          // Fetch both symbol and decimals concurrently
-          const [symbol, decimals] = await Promise.all([
-            getTokenSymbol(log.token),
-            getTokenDecimals(log.token)
-          ]);
-          newTokenSymbols[log.token] = symbol;
-          newTokenDecimals[log.token] = decimals;
-        }
-      }
+  //     for (const log of eventLogs) {
+  //       if (!tokenSymbols[log.token]) {
+  //         // Fetch both symbol and decimals concurrently
+  //         const [symbol, decimals] = await Promise.all([
+  //           getTokenSymbol(log.token),
+  //           getTokenDecimals(log.token)
+  //         ]);
+  //         newTokenSymbols[log.token] = symbol;
+  //         newTokenDecimals[log.token] = decimals;
+  //       }
+  //     }
 
-      setTokenNames(prev => ({ ...prev, ...newTokenSymbols }));
-      setTokenDecimals(prev => ({ ...prev, ...newTokenDecimals }));
-    }
-    fetchTokenInfo();
-  }, [eventLogs]);
+  //     setTokenNames(prev => ({ ...prev, ...newTokenSymbols }));
+  //     setTokenDecimals(prev => ({ ...prev, ...newTokenDecimals }));
+  //   }
+  //   fetchTokenInfo();
+  // }, [eventLogs]);
 
 
   return (
@@ -497,71 +497,12 @@ function App() {
           </div>
 
           <div>
-            <h3>Event Log Topic: TransferScheduled</h3>
-            {eventLogs ? (
-              <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-                <thead>
-                  <tr>
-                    {Object.keys(eventLogs)
-                      .filter(key => key !== 'owner' && key !== 'signature')
-                      .map((key) => (
-                        <th key={key} style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>
-                          {key}
-                        </th>
-                      ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {eventLogs && eventLogs.map((log: TransferScheduledEventLog, index: number) => (
-                    <tr key={index}>
-                      {Object.entries(log)
-                        .filter(([key]) => key !== 'owner' && key !== 'signature')
-                        .map(([key, value], index: number) => (
-                          <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
-                            {key === 'token' ? (
-                              <span title={value.toString()}>
-                                {tokenSymbols[value.toString()] || value.toString()}
-                              </span>
-                            ) : key === 'amount' ? (
-                              <span title={value.toString()}>
-                                {(Number(value) / Math.pow(10, tokenDecimals[log.token] || 18)).toString()}
-                              </span>
-                            ) : key === 'maxBaseFee' ? (
-                              <span title={value.toString()}>
-                                {formatGwei(BigInt(value))}
-                              </span>
-                            ) : key === 'notBeforeDate' || key === 'notAfterDate' ? (
-                              new Date(Number(value) * 1000).toLocaleString('en-US', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                timeZoneName: 'short'
-                              })
-                            ) : typeof value === 'bigint' ? (
-                              value.toString()
-                            ) : (
-                              value.toString()
-                            )}
-                          </td>
-                        ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              'watching...'
-            )}
-          </div>
-
-          <div>
-            <h3>Contract State: getTransfers(complete=false)</h3>
+            <h3><span title="getTransfers(complete=false)">Uncompleted Scheduled Transfers</span></h3>
             <GetUncompletedTransfers />
           </div>
 
           <div>
-            <h3>Contract State: getTransfers(complete=true)</h3>
+            <h3><span title="getTransfers(complete=true)">Completed Scheduled Transfers</span></h3>
             <GetCompletedTransfers />
           </div>
         </>
