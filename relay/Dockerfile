@@ -1,8 +1,6 @@
 # Use the official Node.js 18 image as the base image
 FROM node:18-alpine
 
-ENV RPC_URL=wss://ethereum-sepolia-rpc.publicnode.com
-
 # Set the working directory inside the container
 WORKDIR /app
 
