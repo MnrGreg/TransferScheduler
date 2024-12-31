@@ -165,16 +165,16 @@ const GetUncompletedTransfers = () => {
   }
 
   return (
-    <div>
+    <div style={{ maxWidth: '600px', margin: '0 auto' }}>
       {
         eventLogs && eventLogs.length > 0 ? (
-          <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+          <table style={{ borderCollapse: 'collapse', width: '600px', fontSize: '0.6rem', boxSizing: 'border-box', tableLayout: 'fixed' }}>
             <thead>
               <tr>
                 {Object.keys(eventLogs[0])
                   .filter(key => key !== 'owner' && key !== 'signature')
                   .map((key) => (
-                    <th key={key} style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>
+                    <th key={key} style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'left' }}>
                       {key}
                     </th>
                   ))}
@@ -186,7 +186,15 @@ const GetUncompletedTransfers = () => {
                   {Object.entries(log)
                     .filter(([key]) => key !== 'owner' && key !== 'signature')
                     .map(([key, value], index: number) => (
-                      <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
+                      <td key={index} style={{
+                        border: '1px solid #ccc',
+                        padding: '4px',
+                        width: (key === 'amount' || key === 'token') ? '10%' : '16%',
+                        overflow: 'hidden',
+                        textOverflow: 'clip',
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-all'
+                      }}>
                         {key === 'token' ? (
                           <span title={value.toString()}>
                             {tokenSymbols[value.toString()] || value.toString()}
@@ -220,7 +228,7 @@ const GetUncompletedTransfers = () => {
             </tbody>
           </table>
         ) : (
-          'Watching...'
+          <span style={{ fontSize: '0.875rem' }}>Watching...</span>
         )}
     </div>
   );
@@ -344,16 +352,16 @@ const GetCompletedTransfers = () => {
   }
 
   return (
-    <div>
+    <div style={{ maxWidth: '600px', margin: '0 auto' }}>
       {
         eventLogs && eventLogs.length > 0 ? (
-          <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+          <table style={{ borderCollapse: 'collapse', maxWidth: '600px', fontSize: '0.6rem', boxSizing: 'border-box', tableLayout: 'fixed' }}>
             <thead>
               <tr>
                 {Object.keys(eventLogs[0])
                   .filter(key => key !== 'owner' && key !== 'signature')
                   .map((key) => (
-                    <th key={key} style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'left' }}>
+                    <th key={key} style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'left' }}>
                       {key}
                     </th>
                   ))}
@@ -365,7 +373,15 @@ const GetCompletedTransfers = () => {
                   {Object.entries(log)
                     .filter(([key]) => key !== 'owner' && key !== 'signature')
                     .map(([key, value], index: number) => (
-                      <td key={index} style={{ border: '1px solid #ddd', padding: '8px' }}>
+                      <td key={index} style={{
+                        border: '1px solid #ccc',
+                        padding: '4px',
+                        width: (key === 'amount' || key === 'token') ? '10%' : '16%',
+                        overflow: 'hidden',
+                        textOverflow: 'clip',
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-all'
+                      }}>
                         {key === 'token' ? (
                           <span title={value.toString()}>
                             {tokenSymbols[value.toString()] || value.toString()}
@@ -399,8 +415,9 @@ const GetCompletedTransfers = () => {
             </tbody>
           </table>
         ) : (
-          'Watching...'
-        )}
+          <span style={{ fontSize: '0.875rem' }}>Watching...</span>
+        )
+      }
     </div >
   );
 };
@@ -409,104 +426,46 @@ function App() {
   const { address, chainId, status: accountStatus } = useAccount();
   const { connect, connectors, error: connectError, status: isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
-  // const [eventLogs, setEventLogs] = React.useState<TransferScheduledEventLogs | null>(null);
-
-  // const [tokenSymbols, setTokenNames] = React.useState<Record<string, string>>({});
-  //const [tokenDecimals, setTokenDecimals] = React.useState<Record<string, number>>({});
-
-
-
-  // const transferScheduledEventLogs: TransferScheduledEventLog[] = [];
-  // useWatchContractEvent({
-  //   address: TransferSchedulerContractAddress,
-  //   abi: transferSchedulerABI,
-  //   eventName: 'TransferScheduled',
-  //   args: {
-  //     owner: address
-  //   },
-  //   poll: true,
-  //   onLogs(logs) {
-  //     console.log(logs[0].args);
-  //     setEventLogs(transferScheduledEventLogs);
-  //   }
-  // })
-
-  // useEffect(() => {
-  //   async function fetchTokenInfo() {
-  //     if (!eventLogs) return;
-
-  //     const newTokenSymbols: Record<string, string> = {};
-  //     const newTokenDecimals: Record<string, number> = {};
-
-  //     for (const log of eventLogs) {
-  //       if (!tokenSymbols[log.token]) {
-  //         // Fetch both symbol and decimals concurrently
-  //         const [symbol, decimals] = await Promise.all([
-  //           getTokenSymbol(log.token),
-  //           getTokenDecimals(log.token)
-  //         ]);
-  //         newTokenSymbols[log.token] = symbol;
-  //         newTokenDecimals[log.token] = decimals;
-  //       }
-  //     }
-
-  //     setTokenNames(prev => ({ ...prev, ...newTokenSymbols }));
-  //     setTokenDecimals(prev => ({ ...prev, ...newTokenDecimals }));
-  //   }
-  //   fetchTokenInfo();
-  // }, [eventLogs]);
-
 
   return (
     <>
-      <div>
-        <div>
-          <h3>TransferScheduler Contract: {TransferSchedulerContractAddress}</h3>
-          Status: {accountStatus}
-          <br />
-          Address: {address}
-          <br />
-          chainId: {chainId}
-        </div>
-
-        {accountStatus === 'connected' && (
-          <button type="button" onClick={() => disconnect()}>
+      <div style={{ padding: '0px', maxWidth: '600px', margin: '0 auto', textAlign: 'left', border: 'none' }}>
+        <h3 style={{ fontSize: '0.875rem', padding: '0px', marginTop: '0px', marginBottom: '4px' }}>TransferScheduler Contract: {TransferSchedulerContractAddress}</h3>
+        <div style={{ fontSize: '0.875rem', padding: '0px', marginTop: '0px', marginBottom: '0px' }}>Chain ID: {chainId} {accountStatus} {accountStatus === 'connected' && (
+          <button type="button" onClick={() => disconnect()} style={{ margin: '4px 0', padding: '0px', marginTop: '0px', marginBottom: '0px' }}>
             Disconnect
           </button>
-        )}
+        )}</div>
+        <div style={{ fontSize: '0.875rem', padding: '0px', marginTop: '0px', marginBottom: '10px' }}>Wallet address: {address}</div>
       </div>
 
       {accountStatus !== 'connected' && (
-        <div>
-          <h3>Connect</h3>
+        <div style={{ padding: '6px', maxWidth: '600px', margin: '0 auto', textAlign: 'left' }}>
+          <h3 style={{ fontSize: '0.875rem' }}>Connect</h3>
           {connectors.map((connector) => (
-            <button key={connector.id} onClick={() => connect({ connector })} type="button">
+            <button key={connector.id} onClick={() => connect({ connector })} type="button" style={{ margin: '8px 0' }}>
               {connector.name}
             </button>
           ))}
-          {isConnecting && <div>Connecting...</div>}
-          {connectError && <div>{connectError.message}</div>}
+          {isConnecting && <div style={{ fontSize: '0.875rem' }}>Connecting...</div>}
+          {connectError && <div style={{ fontSize: '0.875rem' }}>{connectError.message}</div>}
         </div>
       )}
 
       {accountStatus === 'connected' && (
-        <>
-
-          <div>
-            <QueueTransferTransaction />
-          </div>
-
-          <div>
-            <h3><span title="getTransfers(complete=false)">Uncompleted Scheduled Transfers</span></h3>
-            <GetUncompletedTransfers />
-          </div>
-
-          <div>
-            <h3><span title="getTransfers(complete=true)">Completed Scheduled Transfers</span></h3>
-            <GetCompletedTransfers />
-          </div>
-        </>
+        <div style={{ padding: '0px', maxWidth: '600px', margin: '0 auto', textAlign: 'left', border: 'none' }}>
+          <QueueTransferTransaction />
+          <h3 style={{ fontSize: '0.875rem', border: 'none' }}><span title="getTransfers(complete=false)">Uncompleted Scheduled Transfers</span></h3>
+          <GetUncompletedTransfers />
+          <h3 style={{ fontSize: '0.875rem', border: 'none' }}><span title="getTransfers(complete=true)">Completed Scheduled Transfers</span></h3>
+          <GetCompletedTransfers />
+        </div>
       )}
+      <div style={{ textAlign: 'center', marginTop: '30px' }}>
+        <a href="https://github.com/MnrGreg/TransferScheduler" target="_blank" rel="noopener noreferrer">
+          <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub Logo" style={{ width: '20px', height: '20px' }} />
+        </a>
+      </div>
     </>
   );
 }

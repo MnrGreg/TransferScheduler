@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     useWaitForTransactionReceipt,
     useAccount,
@@ -25,6 +25,7 @@ export function QueueTransferTransaction() {
     const [amountInput, setAmountInput] = useState<string>(''); // Temporary state for input
     const [amount, setAmount] = useState<bigint | null>(null); // State for BigInt amount
     const { data: gasPrice } = useGasPrice();
+    const [ethPrice, setEthPrice] = useState<number | null>(null);
 
     React.useEffect(() => {
         if (gasPrice) {
@@ -110,8 +111,8 @@ export function QueueTransferTransaction() {
         const token = formData.get('token') as `0x${string}`;
         const to = formData.get('to') as `0x${string}`;
         const amountStr = formData.get('amount') as string;
-        const notBeforeDateInput = (event.currentTarget as HTMLFormElement).querySelector('input[name="notBeforeDate"]') as HTMLInputElement;
-        const notAfterDateInput = (event.currentTarget as HTMLFormElement).querySelector('input[name="notAfterDate"]') as HTMLInputElement;
+        const notBeforeDateInput = (event.currentTarget as HTMLFormElement).querySelector('input[name="notBefore"]') as HTMLInputElement;
+        const notAfterDateInput = (event.currentTarget as HTMLFormElement).querySelector('input[name="notAfter"]') as HTMLInputElement;
         const notBeforeDate = Number(notBeforeDateInput.dataset.timestamp || '0');
         const notAfterDate = Number(notAfterDateInput.dataset.timestamp || '0');
 
@@ -221,113 +222,115 @@ export function QueueTransferTransaction() {
         }
     }
 
+    // TODO: Use relayGasTokenName address and chain ID to lookup price 
+    useEffect(() => {
+        const url = 'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd';
+        const options = { method: 'GET', headers: { accept: 'application/json' } };
+
+        fetch(url, options)
+            .then(res => res.json())
+            .then(json => {
+                const ethPrice = json.ethereum.usd;
+                setEthPrice(ethPrice);
+            })
+            .catch(err => console.error(err));
+    }, []);
+
     return (
-        <form onSubmit={submit}>
-            <h3>Queue TransferScheduler Transaction onchain</h3>
-            <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #ccc', fontSize: '14px' }}>
-                <tbody>
-                    <tr>
-                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>token</th>
-                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>transfer amount</th>
-                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>to</th>
-                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>maxBaseFee</th>
-                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>notBeforeDate</th>
-                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '8px' }}>notAfterDate</th>
-                    </tr>
-                    <tr>
-                        <td style={{ border: '1px solid #ccc' }}>
-                            <input
-                                type="text"
-                                name="token"
-                                placeholder="0x..."
-                                style={{ width: '345px', padding: '8px', fontSize: '14px', border: 'none' }}
-                                onChange={handleTokenChange}
-                                required
-                            />
-                        </td>
-                        <td style={{ border: '1px solid #ccc' }}>
-                            <input
-                                name="amount"
-                                type="text"
-                                placeholder="0.000"
-                                style={{ width: '100px', border: 'none', padding: '8px', fontSize: '14px' }}
-                                value={amountInput}
-                                onChange={handleAmountChange}
-                                onBlur={handleAmountBlur}
-                                required
-                            />
-                        </td>
-                        <td style={{ border: '1px solid #ccc' }}>
-                            <input
-                                name="to"
-                                placeholder="0x..."
-                                style={{ width: '345px', border: 'none', padding: '8px', fontSize: '14px' }}
-                                required
-                            />
-                        </td>
-                        <td style={{ border: '1px solid #ccc' }}>
-                            <input
-                                name="maxBaseFee"
-                                type="number"
-                                placeholder="gwei"
-                                style={{ width: '100px', border: 'none', padding: '8px', fontSize: '14px' }}
-                                required
-                                onChange={(e) => setMaxBaseFee(e.target.value)}
-                                value={maxBaseFee}
-                            />
-                        </td>
-                        <td style={{ border: '1px solid #ccc' }}>
-                            <input
-                                name="notBeforeDate"
-                                type="datetime-local"
-                                min={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
-                                onChange={(e) => {
-                                    const date = new Date(e.target.value);
-                                    const timestamp = Math.floor(date.getTime() / 1000);
-                                    e.target.dataset.timestamp = timestamp.toString();
-                                }}
-                                style={{ border: 'none', padding: '4px', fontSize: '12px' }}
-                                required
-                            />
-                        </td>
-                        <td style={{ border: '1px solid #ccc' }}>
-                            <input
-                                name="notAfterDate"
-                                type="datetime-local"
-                                min={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
-                                onChange={(e) => {
-                                    const date = new Date(e.target.value);
-                                    const timestamp = Math.floor(date.getTime() / 1000);
-                                    e.target.dataset.timestamp = timestamp.toString();
-                                }}
-                                style={{ border: 'none', padding: '4px', fontSize: '12px' }}
-                                required
-                            />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style={{ border: '1px solid #ccc', padding: '8px' }}><span title={relayGasToken as string}>{relayGasTokenName} (gas token)</span></td>
-                        <td style={{ border: '1px solid #ccc', padding: '8px' }}>{formatEther(relayCommissionTotal)}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '8px' }}><span title={`fee = block.basefee * gas (380k) * relay commission (${relayGasCommissionPercentage}%)`}>future relayer</span></td>
-                        <td style={{ border: '1px solid #ccc', padding: '8px' }}>
-                            {maxBaseFee ? `${maxBaseFee}` : '-'}
-                        </td>
-                        <td style={{ border: '1px solid #ccc', padding: '8px' }}>-</td>
-                        <td style={{ border: '1px solid #ccc', padding: '8px' }}>-</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div style={{ marginTop: '16px' }}>
-                <button disabled={isPending} type="submit">
-                    {isPending ? 'Confirming...' : 'Sign and queue transfer onchain'}
-                </button>
+        <form onSubmit={submit} style={{ padding: '0px', maxWidth: '600px', margin: '0 auto', border: 'none' }}>
+            <div style={{ marginBottom: '8px' }}>
+                <label htmlFor="token" style={{ display: 'block', marginBottom: '8px' }}>Token:</label>
+                <input
+                    id="token"
+                    name="token"
+                    value={token || ''}
+                    placeholder="Enter 0x token address"
+                    style={{ width: '100%', padding: '8px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                    required
+                    onChange={handleTokenChange}
+                />
             </div>
-
+            <div style={{ marginBottom: '8px' }}>
+                <label htmlFor="to" style={{ display: 'block', marginBottom: '8px' }}>To:</label>
+                <input
+                    id="to"
+                    name="to"
+                    placeholder="Enter 0x recipient address"
+                    style={{ width: '100%', padding: '8px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                    required
+                />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <div style={{ width: '50%' }}>
+                    <label htmlFor="amount" style={{ display: 'block', marginBottom: '8px' }}>Amount:</label>
+                    <input
+                        id="amount"
+                        name="amount"
+                        type="number"
+                        value={amountInput}
+                        placeholder="Enter amount"
+                        style={{ width: '100%', padding: '8px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                        required
+                        onChange={handleAmountChange}
+                        onBlur={handleAmountBlur}
+                    />
+                </div>
+                <div style={{ width: '50%' }}>
+                    <label htmlFor="maxBaseFee" style={{ display: 'block', marginBottom: '8px' }}>Max Base Fee:</label>
+                    <input
+                        id="maxBaseFee"
+                        name="maxBaseFee"
+                        type="number"
+                        value={maxBaseFee}
+                        placeholder="Enter max base fee in gwei"
+                        style={{ width: '100%', padding: '8px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                        required
+                        onChange={(e) => setMaxBaseFee(e.target.value)}
+                    />
+                </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <div style={{ width: '50%' }}>
+                    <label htmlFor="notBefore" style={{ display: 'block', marginBottom: '8px' }}>Not Before:</label>
+                    <input
+                        id="notBefore"
+                        name="notBefore"
+                        type="datetime-local"
+                        onChange={(e) => {
+                            const date = new Date(e.target.value);
+                            const timestamp = Math.floor(date.getTime() / 1000);
+                            e.target.dataset.timestamp = timestamp.toString();
+                        }}
+                        style={{ width: '100%', padding: '8px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                        required
+                    />
+                </div>
+                <div style={{ width: '50%' }}>
+                    <label htmlFor="notAfter" style={{ display: 'block', marginBottom: '8px' }}>Not After:</label>
+                    <input
+                        id="notAfter"
+                        name="notAfter"
+                        type="datetime-local"
+                        onChange={(e) => {
+                            const date = new Date(e.target.value);
+                            const timestamp = Math.floor(date.getTime() / 1000);
+                            e.target.dataset.timestamp = timestamp.toString();
+                        }}
+                        style={{ width: '100%', padding: '8px', border: '1px solid #ccc', boxSizing: 'border-box' }}
+                        required
+                    />
+                </div>
+            </div>
+            <button type="submit" style={{ width: '100%', fontSize: '0.875rem', padding: '12px', backgroundColor: '#007bff', color: '#fff', border: 'none' }} disabled={isPending}>
+                {isPending ? 'Confirming...' : 'Sign and queue transfer onchain'}
+            </button>
+            <div style={{ marginBottom: '8px' }}>
+                <span style={{ fontStyle: 'italic' }} title={`relay compensation = block.basefee * gas (380k) * relay commission (${relayGasCommissionPercentage}%)`}>* Relay compensation: {formatEther(relayCommissionTotal)} {relayGasTokenName} (${ethPrice && relayCommissionTotal ? (Number(formatEther(relayCommissionTotal)) * ethPrice).toFixed(2) : '0'} USD)</span>
+            </div>
+            {error && <div style={{ color: 'red', marginBottom: '8px' }}>{error.message}</div>}
             {hash && <div>Transaction hash: {hash}</div>}
             {isConfirming && <div>Waiting for confirmation...</div>}
             {isConfirmed && <div>Transaction confirmed.</div>}
-            {error && <div>Error: {error.message}</div>}
             <TokenAllowances
                 transferToken={token}
                 transferAmount={amount}

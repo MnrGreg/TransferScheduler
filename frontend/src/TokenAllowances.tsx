@@ -126,15 +126,14 @@ const TokenAllowanceRow = ({ token, amount, label }: TokenAllowanceRowProps) => 
 
     return (
         <tr style={{ border: '1px solid #ccc' }}>
-            <td style={{ border: '1px solid #ccc', padding: '4px' }}>{label}</td>
-            <td style={{ border: '1px solid #ccc', padding: '4px' }}>{symbol === null ? '...' : symbol}</td>
+            <td style={{ border: '1px solid #ccc', padding: '4px' }} title={label}>{symbol === null ? '...' : symbol}</td>
             <td style={{ border: '1px solid #ccc', padding: '4px' }}>
                 {balance === null ? '...' : formatAmount(balance)}
             </td>
             <td style={{ border: '1px solid #ccc', padding: '4px', color: color }}>
                 {allowance === null ? '...' : formatAmount(allowance)}
             </td>
-            <td style={{ border: '1px solid #ccc' }}>
+            <td style={{ border: '1px solid #ccc', maxWidth: '80px', }}>
                 <input
                     type="text"
                     value={newAllowance}
@@ -142,20 +141,22 @@ const TokenAllowanceRow = ({ token, amount, label }: TokenAllowanceRowProps) => 
                     placeholder="0.00"
                     style={{
                         border: 'none',
+                        fontSize: '0.6rem',
                         padding: '4px',
-                        fontSize: '14px',
+                        maxWidth: '80px',
                         backgroundColor: 'transparent'
                     }}
                 />
             </td>
-            <td style={{ border: '1px solid #ccc', padding: '4px' }}>
+            <td style={{ border: '1px solid #ccc', padding: '0px', textAlign: 'center' }}>
                 <button
                     type="button"
                     onClick={handleApprove}
                     disabled={isPending || !token || !newAllowance || decimals === null}
                     style={{
-                        padding: '4px 4px',
-                        fontSize: '14px'
+                        padding: '0px',
+                        width: '100%',
+                        fontSize: '0.6rem'
                     }}
                 >
                     {isPending ? 'Approving...' : 'Approve'}
@@ -177,22 +178,20 @@ export function TokenAllowances({
     gasAmount: bigint | null;
 }) {
     return (
-        <div style={{ marginTop: '16px', marginBottom: '16px' }}>
-            <h3>TransferScheduler Allowances</h3>
+        <div style={{ marginTop: '16px', padding: '0px', marginBottom: '16px', margin: '0 auto', border: 'none', textAlign: 'left', maxWidth: '600px' }}>
+            <h3 style={{ fontSize: '0.875rem' }}>TransferScheduler Allowances</h3>
             <table style={{
-                width: '700px',
                 borderCollapse: 'collapse',
-                border: '1px solid #ccc',
-                fontSize: '14px',
-                marginTop: '8px'
+                border: 'none',
+                fontSize: '0.6rem',
+                width: '100%'
             }}>
                 <thead>
                     <tr>
-                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '4px' }}>token</th>
                         <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '4px' }}>token symbol</th>
                         <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '4px' }}>balance</th>
-                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '4px' }}>current allowance</th>
-                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '4px' }}>increase allowance</th>
+                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '4px' }}>current<br /> allowance</th>
+                        <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '4px' }}>increase<br /> allowance</th>
                         <th style={{ border: '1px solid #ccc', textAlign: 'left', padding: '4px' }}>action</th>
                     </tr>
                 </thead>
