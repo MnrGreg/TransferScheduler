@@ -12,7 +12,6 @@ let pingInterval: NodeJS.Timeout;
 let address: string;
 let account: any;
 let relayGasUsage: number;
-let feeData: any;
 
 async function startWebsocketPingInterval() {
     pingInterval = setInterval(async () => {

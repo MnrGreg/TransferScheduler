@@ -12,21 +12,18 @@ type TransferScheduledEventLogs = TransferScheduledEventLog[];
 export async function getTokenSymbol(tokenAddress: `0x${string}`): Promise<string> {
 
   // Fetch token name if we have a valid token address
-  const tokenContract = await readContract(config, {
-    abi: [{
-      name: 'symbol',
-      type: 'function',
-      stateMutability: 'view',
-      inputs: [],
-      outputs: [{ type: 'string' }],
-    }],
-    address: tokenAddress,
-    functionName: 'symbol',
-  });
-
   try {
-    const tokenSymbol = await tokenContract;
-    return tokenSymbol;
+    return await readContract(config, {
+      abi: [{
+        name: 'symbol',
+        type: 'function',
+        stateMutability: 'view',
+        inputs: [],
+        outputs: [{ type: 'string' }],
+      }],
+      address: tokenAddress,
+      functionName: 'symbol',
+    });
   } catch (error) {
     console.error('Error fetching token symbol:', error);
     return tokenAddress; // Fallback to address if symbol fetch fails
@@ -35,7 +32,7 @@ export async function getTokenSymbol(tokenAddress: `0x${string}`): Promise<strin
 
 export async function getTokenDecimals(tokenAddress: `0x${string}`): Promise<number> {
   try {
-    const data = await readContract(config, {
+    return await readContract(config, {
       address: tokenAddress,
       abi: [{
         name: 'decimals',
@@ -45,8 +42,7 @@ export async function getTokenDecimals(tokenAddress: `0x${string}`): Promise<num
         outputs: [{ type: 'uint8' }],
       }],
       functionName: 'decimals',
-    }) as number;
-    return data;
+    }) as number;;
   } catch (error) {
     console.error('Error fetching token decimals:', error);
     return 18; // Default to 18 decimals if there's an error
