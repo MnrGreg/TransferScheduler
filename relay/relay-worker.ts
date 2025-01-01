@@ -89,10 +89,19 @@ async function handleTransferScheduledEvent(event: any) {
                 console.log('MaxPriorityFeePerGas:', feeData.maxPriorityFeePerGas);
                 console.log('MaxFeePerGas:', feeData.maxFeePerGas);
                 console.log('Base fee:', feeData.baseFeePerGas);
-                if (!feeData.maxPriorityFeePerGas || !feeData.maxFeePerGas) {
+                if (!feeData.baseFeePerGas || !feeData.maxFeePerGas) {
                     console.log('Fee data not available. Retrying...');
                     continue;
                 }
+
+                const estGas = await transferSchedulerContract.methods
+                    .executeScheduledTransfer(scheduledTransfer, transferScheduledEventLog.signature).estimateGas({
+                        from: address,
+                        maxPriorityFeePerGas: process.env.MAX_PRIORITY_FEE_PER_GAS,
+                        maxFeePerGas: feeData.maxFeePerGas.toString()
+                    });
+                console.log('Estimated gas for Nonce:', transferScheduledEventLog.nonce, estGas);
+
                 // Simulate contract execution with eth_call first
                 const result = await transferSchedulerContract.methods
                     .executeScheduledTransfer(scheduledTransfer, transferScheduledEventLog.signature)

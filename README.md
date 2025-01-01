@@ -18,15 +18,17 @@ The TransferScheduler is a public-good smart contract to facilitate scheduled ER
 - **Gas Price Threshold**: Transfers will not execute if the network gas price `block.basefee` is higher than the user specified threshold `maxBaseFee`.
 - **Offchain queuing**: ScheduledTransfer signed messages can be provided directly to recipients or third party relays for offchain queuing, thereby avoid onchain queueing gas cost (70k gas).
 
-## Frontend video on Base Mainnet
-[![TransferScheduler frontend on Base Mainnet](https://img.youtube.com/vi/K4cCaMCihhc/0.jpg)](https://youtu.be/K4cCaMCihhc)
+## Frontend video on Arbitrum Mainnet
+[![TransferScheduler frontend on Arbitrum Mainnet](https://img.youtube.com/vi/0jZ9iCKhaPQ/0.jpg)](https://youtu.be/0jZ9iCKhaPQ)
 
 ## Components
 ### Smart Contract
 The core functionality is implemented in the TransferScheduler smart contract, which includes methods for:
 - Queuing signed scheduled transfers (address, nonce, nonce status) - 70k gas
 - [Verifies](./contracts/src/TransferSchedulerV4.sol#L179) the user [EIP712 ScheduledTransfer typed message signature](./client-sdk/src/web3.ts#L9-L10)
-- Executing scheduled transfers - 130k gas with EOA | 380k gas with Smart Account
+- Executing scheduled transfers
+    - Base: 130k gas with EOA | 380k gas with Smart Account
+    - Arbitrum: 700k gas with EOA | 900k gas with Smart Account
 - [Retrieving](./contracts/src/TransferSchedulerV4.sol#L153) the [relay gas token](./contracts/src/TransferSchedulerV4.sol#L29)
 - [Retrieving](./contracts/src/TransferSchedulerV4.sol#L143) the [relay gas usage](./contracts/src/TransferSchedulerV4.sol#L29)
 - [Retrieving](./contracts/src/TransferSchedulerV4.sol#L148) the [relay gas commission percentage](./contracts/src/TransferSchedulerV4.sol#L29)

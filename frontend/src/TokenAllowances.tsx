@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAccount } from 'wagmi';
-import { readContract, simulateContract, writeContract } from '@wagmi/core';
+import { readContract, simulateContract, writeContract, waitForTransactionReceipt } from '@wagmi/core';
 import { config } from './wagmi';
 import { TransferSchedulerContractAddress } from 'transfer-scheduler-sdk';
 import { getTokenSymbol } from './App';
@@ -91,7 +91,7 @@ const TokenAllowanceRow = ({ token, amount, label }: TokenAllowanceRowProps) => 
 
     // Execute token approval
     const handleApprove = async () => {
-        if (!token || !newAllowance || decimals === null) return;
+        if (!token || !newAllowance || !userAddress || decimals === null) return;
 
         const parsedAmount = parseAmount(newAllowance);
         setIsPending(true);
@@ -112,7 +112,33 @@ const TokenAllowanceRow = ({ token, amount, label }: TokenAllowanceRowProps) => 
                 args: [TransferSchedulerContractAddress, parsedAmount],
             });
             const txHash = await writeContract(config, request);
-            console.log('Transaction Hash:', txHash);
+            console.log('Approval Transaction Hash:', txHash);
+
+            // Wait for the transaction receipt
+            const transactionReceipt = await waitForTransactionReceipt(config, {
+                hash: txHash,
+            });
+            if (transactionReceipt.status === "success") {
+                // Transaction was successful
+                const updatedAllowance = await readContract(config, {
+                    abi: [{
+                        name: 'allowance',
+                        type: 'function',
+                        stateMutability: 'view',
+                        inputs: [
+                            { name: 'owner', type: 'address' },
+                            { name: 'spender', type: 'address' },
+                        ],
+                        outputs: [{ type: 'uint256' }],
+                    }],
+                    address: token,
+                    functionName: 'allowance',
+                    args: [userAddress, TransferSchedulerContractAddress],
+                });
+                setAllowance(updatedAllowance);
+            } else {
+                console.error('Transaction failed:', txHash);
+            }
         } catch (error) {
             console.error('Approval error:', error);
         } finally {

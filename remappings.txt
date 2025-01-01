@@ -6,3 +6,4 @@ permit2/=contracts/lib/permit2/
 @openzeppelin/contracts/=contracts/lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/
 @openzeppelin/contracts-upgradeable/=contracts/lib/openzeppelin-contracts-upgradeable/contracts/
 openzeppelin-foundry-upgrades/=contracts/lib/openzeppelin-foundry-upgrades/src/
+@arbitrum/=contracts/lib/nitro-contracts/src/

@@ -13,3 +13,6 @@
 [submodule "contracts/lib/permit2"]
 	path = contracts/lib/permit2
 	url = https://github.com/Uniswap/permit2
+[submodule "contracts/lib/nitro-contracts"]
+	path = contracts/lib/nitro-contracts
+	url = https://github.com/offchainlabs/nitro-contracts

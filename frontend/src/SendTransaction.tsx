@@ -21,6 +21,7 @@ export function QueueTransferTransaction() {
     const [relayGasToken, setRelayGasToken] = React.useState<`0x${string}` | null>(null);
     const [relayGasTokenName, setRelayGasTokenName] = React.useState<string>('');
     const [relayGasCommissionPercentage, setRelayGasCommissionPercentage] = useState<number | null>(null);
+    const [relayGasUsage, setRelayGasUsage] = useState<number | null>(null);
     const [token, setToken] = React.useState<`0x${string}` | null>(null);
     const [amountInput, setAmountInput] = useState<string>(''); // Temporary state for input
     const [amount, setAmount] = useState<bigint | null>(null); // State for BigInt amount
@@ -57,6 +58,24 @@ export function QueueTransferTransaction() {
 
     React.useEffect(() => {
         fetchRelayGasToken();
+    }, []);
+
+    const fetchRelayGasUsage = async () => {
+        try {
+            const usage = await readContract(config, {
+                abi: transferSchedulerABI,
+                address: TransferSchedulerContractAddress,
+                functionName: 'getRelayGasUsage',
+            });
+            setRelayGasUsage(usage);
+
+        } catch (err) {
+            console.error('Error fetching relay gas usage:', err);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchRelayGasUsage();
     }, []);
 
     const fetchRelayGasCommissionPercentage = async () => {
@@ -96,8 +115,8 @@ export function QueueTransferTransaction() {
         }
     };
 
-    const relayCommissionTotal = relayGasCommissionPercentage !== null && gasPrice !== undefined
-        ? BigInt(380000) * (BigInt(100) + BigInt(relayGasCommissionPercentage)) * gasPrice / BigInt(100)
+    const relayCommissionTotal = relayGasCommissionPercentage !== null && gasPrice !== undefined && relayGasUsage !== null
+        ? BigInt(relayGasUsage) * (BigInt(100) + BigInt(relayGasCommissionPercentage)) * gasPrice / BigInt(100)
         : BigInt(0);
 
     const handleTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -325,7 +344,7 @@ export function QueueTransferTransaction() {
                 {isPending ? 'Confirming...' : 'Sign and queue transfer onchain'}
             </button>
             <div style={{ marginBottom: '8px' }}>
-                <span style={{ fontStyle: 'italic' }} title={`relay compensation = block.basefee * gas (380k) * relay commission (${relayGasCommissionPercentage}%)`}>* Relay compensation: {formatEther(relayCommissionTotal)} {relayGasTokenName} (${ethPrice && relayCommissionTotal ? (Number(formatEther(relayCommissionTotal)) * ethPrice).toFixed(2) : '0'} USD)</span>
+                <span style={{ fontStyle: 'italic' }} title={`relay compensation = block.basefee * gas (${relayGasUsage}) * relay commission (${relayGasCommissionPercentage}%)`}>* Relay compensation: {formatEther(relayCommissionTotal)} {relayGasTokenName} (${ethPrice && relayCommissionTotal ? (Number(formatEther(relayCommissionTotal)) * ethPrice).toFixed(2) : '0'} USD)</span>
             </div>
             {error && <div style={{ color: 'red', marginBottom: '8px' }}>{error.message}</div>}
             {hash && <div>Transaction hash: {hash}</div>}
