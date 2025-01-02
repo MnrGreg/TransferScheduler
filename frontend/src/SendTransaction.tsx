@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import {
     useWaitForTransactionReceipt,
     useAccount,
-    useGasPrice,
 } from 'wagmi';
 import { types } from './ScheduledTransferTypedData';
-import { signTypedData, writeContract, simulateContract, readContract } from '@wagmi/core';
+import { signTypedData, writeContract, simulateContract, readContract, getFeeHistory } from '@wagmi/core';
 import { config } from './wagmi';
 import { TransferSchedulerContractAddress, transferSchedulerABI } from 'transfer-scheduler-sdk';
 import { getTokenSymbol, getTokenDecimals } from './App';
@@ -25,18 +24,30 @@ export function QueueTransferTransaction() {
     const [token, setToken] = React.useState<`0x${string}` | null>(null);
     const [amountInput, setAmountInput] = useState<string>(''); // Temporary state for input
     const [amount, setAmount] = useState<bigint | null>(null); // State for BigInt amount
-    const { data: gasPrice } = useGasPrice();
     const [ethPrice, setEthPrice] = useState<number | null>(null);
-
-    React.useEffect(() => {
-        if (gasPrice) {
-            setMaxBaseFee(formatGwei(gasPrice));
-        }
-    }, [gasPrice]);
 
     const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
         hash,
     });
+
+    const fetchMaxBaseFee = async () => {
+        try {
+            const feeHistory = await getFeeHistory(config, {
+                blockCount: 1024,
+                rewardPercentiles: [90]
+            })
+            const sortedBaseFees = feeHistory.baseFeePerGas.map(BigInt).sort((a, b) => Number(a) - Number(b));
+            const index90thPercentile = Math.floor(sortedBaseFees.length * 0.9) - 1; // 0-based index
+            setMaxBaseFee(formatGwei(sortedBaseFees[index90thPercentile]));
+        } catch (err) {
+            console.error('Error fetching max base fee history:', err);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchMaxBaseFee();
+    }, []);
+
 
     const fetchRelayGasToken = async () => {
         try {
@@ -115,8 +126,8 @@ export function QueueTransferTransaction() {
         }
     };
 
-    const relayCommissionTotal = relayGasCommissionPercentage !== null && gasPrice !== undefined && relayGasUsage !== null
-        ? BigInt(relayGasUsage) * (BigInt(100) + BigInt(relayGasCommissionPercentage)) * gasPrice / BigInt(100)
+    const relayCommissionTotal = relayGasCommissionPercentage !== null && maxBaseFee !== undefined && relayGasUsage !== null
+        ? BigInt(relayGasUsage) * (BigInt(100) + BigInt(relayGasCommissionPercentage)) * BigInt(parseGwei(maxBaseFee)) / BigInt(100)
         : BigInt(0);
 
     const handleTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -295,7 +306,10 @@ export function QueueTransferTransaction() {
                     />
                 </div>
                 <div style={{ width: '50%' }}>
-                    <label htmlFor="maxBaseFee" style={{ display: 'block', marginBottom: '8px' }}>Max Base Fee:</label>
+                    <label htmlFor="maxBaseFee" style={{ display: 'block', marginBottom: '8px' }}>
+                        Max Base Fee:
+                        <span style={{ marginLeft: '5px', cursor: 'pointer' }} title="Set the Max Base Fee for your transaction. It won't execute if the network's future block.basefee exceeds this limit. The current p90 Base Fee is shown below and can change significantly, so consider adding extra headroom to ensure execution.">&#9432;</span>
+                    </label>
                     <input
                         id="maxBaseFee"
                         name="maxBaseFee"
@@ -344,7 +358,7 @@ export function QueueTransferTransaction() {
                 {isPending ? 'Confirming...' : 'Sign and queue transfer onchain'}
             </button>
             <div style={{ marginBottom: '8px' }}>
-                <span style={{ fontStyle: 'italic' }} title={`relay compensation = block.basefee * gas (${relayGasUsage}) * relay commission (${relayGasCommissionPercentage}%)`}>* Relay compensation: {formatEther(relayCommissionTotal)} {relayGasTokenName} (${ethPrice && relayCommissionTotal ? (Number(formatEther(relayCommissionTotal)) * ethPrice).toFixed(2) : '0'} USD)</span>
+                <span style={{ fontStyle: 'italic' }} title={`relay compensation = block.basefee (${maxBaseFee}) * gas (${relayGasUsage}) * relay commission (${relayGasCommissionPercentage}%)`}>* Relay compensation: {formatEther(relayCommissionTotal)} {relayGasTokenName} ({ethPrice && relayCommissionTotal ? (Number(formatEther(relayCommissionTotal)) * ethPrice).toFixed(2) : '0'} USD)</span>
             </div>
             {error && <div style={{ color: 'red', marginBottom: '8px' }}>{error.message}</div>}
             {hash && <div>Transaction hash: {hash}</div>}

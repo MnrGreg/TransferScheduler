@@ -419,7 +419,7 @@ const GetCompletedTransfers = () => {
 };
 
 function App() {
-  const { address, chainId, status: accountStatus } = useAccount();
+  const { address, chainId, status: accountStatus, chain } = useAccount();
   const { connect, connectors, error: connectError, status: isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
 
@@ -427,7 +427,7 @@ function App() {
     <>
       <div style={{ padding: '0px', maxWidth: '600px', margin: '0 auto', textAlign: 'left', border: 'none' }}>
         <h3 style={{ fontSize: '0.875rem', padding: '0px', marginTop: '0px', marginBottom: '4px' }}>TransferScheduler Contract: {TransferSchedulerContractAddress}</h3>
-        <div style={{ fontSize: '0.875rem', padding: '0px', marginTop: '0px', marginBottom: '0px' }}>Chain ID: {chainId} {accountStatus} {accountStatus === 'connected' && (
+        <div style={{ fontSize: '0.875rem', padding: '0px', marginTop: '0px', marginBottom: '0px' }}>Chain: {chain?.name} | {chainId} | {accountStatus} {accountStatus === 'connected' && (
           <button type="button" onClick={() => disconnect()} style={{ margin: '4px 0', padding: '0px', marginTop: '0px', marginBottom: '0px' }}>
             Disconnect
           </button>
