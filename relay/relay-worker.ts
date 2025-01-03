@@ -1,6 +1,6 @@
 import Web3, { WebSocketProvider, } from 'web3';
 import { ContractLogsSubscription } from 'web3-eth-contract';
-import { TransferSchedulerContractAddress, transferSchedulerABI, TransferScheduledEventLog, AddressNonceRecord } from 'transfer-scheduler-sdk';
+import { TransferSchedulerContractAddress, transferSchedulerABI, TransferScheduledEventLog, AddressNonceRecord, Status } from 'transfer-scheduler-sdk';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
@@ -58,8 +58,13 @@ async function handleTransferScheduledEvent(event: any) {
     const addressNonceRecord: AddressNonceRecord = await transferSchedulerContract.methods
         .transfers(transferScheduledEventLog.owner, transferScheduledEventLog.nonce)
         .call();
-    if (addressNonceRecord.exists && addressNonceRecord.completed) {
+
+    if (addressNonceRecord.exists && addressNonceRecord.status == Status.completed) {
         console.log("Queued Transfer already executed. Nonce:", transferScheduledEventLog.nonce);
+        return;
+    }
+    if (addressNonceRecord.exists && addressNonceRecord.status == Status.cancelled) {
+        console.log("Queued Transfer cancelled. Nonce:", transferScheduledEventLog.nonce);
         return;
     }
 

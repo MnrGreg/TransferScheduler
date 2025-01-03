@@ -13,6 +13,5 @@ export const config = createConfig({
     [arbitrum.id]: http('https://arb1.arbitrum.io/rpc'),
     [base.id]: http('https://base.drpc.org'),
     [sepolia.id]: http('https://sepolia.drpc.org'),
-    //[foundry.id]: http('http://localhost:8545'),
   },
 })

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 import "forge-std/Script.sol";
-import "../src/TransferSchedulerV3.sol";
+import "../src/TransferSchedulerV1.sol";
 import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
 contract DeployScript is Script {
@@ -10,10 +10,13 @@ contract DeployScript is Script {
         vm.startBroadcast();
 
         // Deploy the upgradeable contract
+        // Arbitrum WETH: 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1    gasUsage: 800000
+        // Base WETH: 0x4200000000000000000000000000000000000006    gasUsage: 380000
+        // Ethereum Sepolia: 0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14    gasUsage: 380000
         address proxy = Upgrades.deployUUPSProxy(
-            "TransferSchedulerV3.sol",
+            "TransferSchedulerV1.sol",
             abi.encodeCall(
-                TransferSchedulerV3.initialize, (address(0x4200000000000000000000000000000000000006), 50, 380000)
+                TransferSchedulerV1.initialize, (address(0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14), 50, 380000)
             )
         );
 

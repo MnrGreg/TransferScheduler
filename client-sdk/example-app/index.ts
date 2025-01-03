@@ -1,4 +1,4 @@
-import { getRelayCharge, queueScheduledTransfer, getGasTokenAddress, fetchQueuedTransfers, createTypedData, TransferSchedulerContractAddress, TransferScheduledEventLog, ScheduledTransfer } from 'transfer-scheduler-sdk';
+import { getRelayCharge, queueScheduledTransfer, getGasTokenAddress, fetchQueuedTransfers, createTypedData, TransferSchedulerContractAddress, TransferScheduledEventLog, ScheduledTransfer, Status } from 'transfer-scheduler-sdk';
 
 import { Web3, Web3Context } from "web3"
 import crypto from 'crypto';
@@ -76,13 +76,13 @@ async function main() {
         throw (error);
     }
 
-    const uncompletedTransfers: TransferScheduledEventLog[] = await fetchQueuedTransfers(web3, owner as `0x${string}`, false);
+    const uncompletedTransfers: TransferScheduledEventLog[] = await fetchQueuedTransfers(web3, owner as `0x${string}`, Status.notCompleted);
     console.log('Uncompleted Transfers:');
     uncompletedTransfers.forEach((uncompletedTransfer) => {
         console.log(`Nonce: ${uncompletedTransfer.nonce} Token: ${uncompletedTransfer.token} -> ${uncompletedTransfer.to} (${uncompletedTransfer.amount})`);
     });
 
-    const completedTransfers: TransferScheduledEventLog[] = await fetchQueuedTransfers(web3, owner as `0x${string}`, true);
+    const completedTransfers: TransferScheduledEventLog[] = await fetchQueuedTransfers(web3, owner as `0x${string}`, Status.completed);
     console.log('Completed Transfers:');
     completedTransfers.forEach((completedTransfer) => {
         console.log(`Nonce: ${completedTransfer.nonce} Token: ${completedTransfer.token} -> ${completedTransfer.to} (${completedTransfer.amount})`);

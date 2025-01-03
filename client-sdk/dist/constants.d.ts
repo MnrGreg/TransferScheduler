@@ -1,4 +1,4 @@
-export declare const TransferSchedulerContractAddress = "0xbB0b174A5459af5787a54C91EeB957cb9b14bc56";
+export declare const TransferSchedulerContractAddress = "0x67BdbA4214c426DB415A50DF30Cfc2079c953924";
 export declare const transferSchedulerABI: readonly [{
     readonly type: "constructor";
     readonly inputs: readonly [];
@@ -13,6 +13,20 @@ export declare const transferSchedulerABI: readonly [{
         readonly internalType: "string";
     }];
     readonly stateMutability: "view";
+}, {
+    readonly type: "function";
+    readonly name: "cancelScheduledTransfer";
+    readonly inputs: readonly [{
+        readonly name: "_wallet";
+        readonly type: "address";
+        readonly internalType: "address";
+    }, {
+        readonly name: "_nonce";
+        readonly type: "uint96";
+        readonly internalType: "uint96";
+    }];
+    readonly outputs: readonly [];
+    readonly stateMutability: "nonpayable";
 }, {
     readonly type: "function";
     readonly name: "eip712Domain";
@@ -136,14 +150,14 @@ export declare const transferSchedulerABI: readonly [{
         readonly type: "address";
         readonly internalType: "address";
     }, {
-        readonly name: "_completed";
-        readonly type: "bool";
-        readonly internalType: "bool";
+        readonly name: "_status";
+        readonly type: "uint8";
+        readonly internalType: "enum Status";
     }];
     readonly outputs: readonly [{
         readonly name: "";
         readonly type: "tuple[]";
-        readonly internalType: "struct TransferSchedulerV4.QueuedTransferRecord[]";
+        readonly internalType: "struct QueuedTransferRecord[]";
         readonly components: readonly [{
             readonly name: "nonce";
             readonly type: "uint96";
@@ -268,9 +282,9 @@ export declare const transferSchedulerABI: readonly [{
         readonly type: "uint40";
         readonly internalType: "uint40";
     }, {
-        readonly name: "completed";
-        readonly type: "bool";
-        readonly internalType: "bool";
+        readonly name: "status";
+        readonly type: "uint8";
+        readonly internalType: "enum Status";
     }, {
         readonly name: "exists";
         readonly type: "bool";
@@ -478,6 +492,14 @@ export declare const transferSchedulerABI: readonly [{
     readonly inputs: readonly [];
 }, {
     readonly type: "error";
+    readonly name: "InvalidNonceStatus";
+    readonly inputs: readonly [{
+        readonly name: "status";
+        readonly type: "uint8";
+        readonly internalType: "enum Status";
+    }];
+}, {
+    readonly type: "error";
     readonly name: "InvalidSignature";
     readonly inputs: readonly [];
 }, {
@@ -551,6 +573,14 @@ export declare const transferSchedulerABI: readonly [{
         readonly name: "slot";
         readonly type: "bytes32";
         readonly internalType: "bytes32";
+    }];
+}, {
+    readonly type: "error";
+    readonly name: "Unauthorized";
+    readonly inputs: readonly [{
+        readonly name: "caller";
+        readonly type: "address";
+        readonly internalType: "address";
     }];
 }];
 //# sourceMappingURL=constants.d.ts.map

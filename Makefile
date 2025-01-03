@@ -4,7 +4,7 @@ USDC_CONTRACT?=0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
 USDC_HOLDER?=0xfCF7129A8a69a2BD7f2f300eFc352342D6c1638b
 WETH_CONTRACT?=0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14
 
-TSCONTRACT?=0xbB0b174A5459af5787a54C91EeB957cb9b14bc56
+TSCONTRACT?=0xBa551D945d9d4f14F7F6abc9abd26BD2684fA940
 
 # Anvil wallet addresses
 ADDRESS=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
@@ -61,7 +61,7 @@ build-client-sdk:
 
 start-relay: 
 	@echo "Starting relay"
-	cd relay && npm install && (RPC_URL=ws://localhost:8545 PRIVATE_KEY=${SIGNERKEY} ts-node relay-worker.ts & echo $$! >> ../$(PIDFILE))
+	cd relay && npm install && (RPC_URL=ws://localhost:8545 PRIVATE_KEY=${SIGNERKEY} FROM_BLOCK=latest MAX_PRIORITY_FEE_PER_GAS=200000 ts-node relay-worker.ts & echo $$! >> ../$(PIDFILE))
 
 start-webclient:
 	cd frontend && npm install ../client-sdk/transfer-scheduler-sdk-1.0.0.tgz && (npm run dev & echo $$! >> ../$(PIDFILE))

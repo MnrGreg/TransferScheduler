@@ -8,15 +8,18 @@ import {IScheduledTransfer} from "contracts/src/interfaces/IScheduledTransfer.so
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
-import {TransferSchedulerV4} from "contracts/src/TransferSchedulerV4.sol";
+import {addressNonceRecord, Status, QueuedTransferRecord} from "contracts/src/types/TransferSchedulerTypes.sol";
 import {
     TransferTooLate,
     TransferTooEarly,
     InsufficientTokenAllowance,
     InsufficientGasTokenAllowance,
     MaxBaseFeeExceeded,
-    InvalidNonce
-} from "contracts/src/TransferErrors.sol";
+    InvalidNonce,
+    Unauthorized,
+    InvalidNonceStatus
+} from "contracts/src/TransferSchedulerErrors.sol";
+import {TransferSchedulerV1} from "contracts/src/TransferSchedulerV1.sol";
 
 contract TransferSchedulerTest is Test {
     event TransferScheduled(
@@ -31,7 +34,7 @@ contract TransferSchedulerTest is Test {
         bytes signature
     );
 
-    TransferSchedulerV4 transferScheduler;
+    TransferSchedulerV1 transferScheduler;
     IScheduledTransfer.ScheduledTransferDetails scheduledTransferDetails;
 
     bytes32 DOMAIN_SEPARATOR;
@@ -60,26 +63,20 @@ contract TransferSchedulerTest is Test {
         vm.fee(8000000);
 
         address proxy = Upgrades.deployUUPSProxy(
-            "TransferSchedulerV4.sol",
+            "TransferSchedulerV1.sol",
             abi.encodeCall(
-                TransferSchedulerV4.initialize, (address(0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14), 50, 380000)
+                TransferSchedulerV1.initialize, (address(0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14), 50, 380000)
             )
         );
 
-        transferScheduler = TransferSchedulerV4(proxy);
+        transferScheduler = TransferSchedulerV1(proxy);
 
         relayGasCommissionPercentage = transferScheduler.getRelayGasCommissionPercentage();
         relayGasUsage = transferScheduler.getRelayGasUsage();
         address gasTokenAddress = transferScheduler.getRelayGasToken();
         // Get domain data
-        (
-            bytes1 fields,
-            string memory name,
-            string memory version,
-            uint256 chainId,
-            address verifyingContract,
-            bytes32 salt,
-        ) = transferScheduler.eip712Domain();
+        (, string memory name, string memory version, uint256 chainId, address verifyingContract,,) =
+            transferScheduler.eip712Domain();
 
         // Create domain separator
         DOMAIN_SEPARATOR = keccak256(
@@ -135,8 +132,7 @@ contract TransferSchedulerTest is Test {
             owner, nonce, address(token0), recipientAddress, amount, notBeforeDate, notAfterDate, maxBaseFee, signature
         );
 
-        TransferSchedulerV4.QueuedTransferRecord[] memory records =
-            transferScheduler.getScheduledTransfers(owner, false);
+        QueuedTransferRecord[] memory records = transferScheduler.getScheduledTransfers(owner, Status.notCompleted);
         assertEq(nonce, records[0].nonce);
     }
 
@@ -167,18 +163,64 @@ contract TransferSchedulerTest is Test {
     }
 
     function testExecuteTransferInvalidNonce() public {
-        // uint256 startBalanceFrom0 = token0.balanceOf(owner);
-        // uint256 startBalanceFrom1 = gasToken.balanceOf(owner);
-        // uint256 startBalanceTo0 = token0.balanceOf(recipientAddress);
-        // uint256 startBalanceTo1 = gasToken.balanceOf(relayAddress);
-
         vm.startPrank(relayAddress);
         transferScheduler.executeScheduledTransfer(scheduledTransferDetails, signature);
-        vm.stopPrank();
 
         vm.expectRevert(InvalidNonce.selector);
-        vm.startPrank(relayAddress);
         transferScheduler.executeScheduledTransfer(scheduledTransferDetails, signature);
+        vm.stopPrank();
+    }
+
+    function testCancelScheduledTransfer() public {
+        // Queue a scheduled transfer
+        transferScheduler.queueScheduledTransfer(
+            owner, nonce, address(token0), recipientAddress, amount, notBeforeDate, notAfterDate, maxBaseFee, signature
+        );
+
+        // Cancel the scheduled transfer
+        vm.startPrank(owner);
+        transferScheduler.cancelScheduledTransfer(owner, nonce);
+        vm.stopPrank();
+
+        // Check that the status is now cancelled
+        (, Status status,) = transferScheduler.transfers(owner, nonce);
+        //console.logUint(uint256(status));
+        assertEq(uint256(status), 2);
+    }
+
+    function testCancelScheduledTransferUnauthorized() public {
+        // Queue a scheduled transfer
+        transferScheduler.queueScheduledTransfer(
+            owner, nonce, address(token0), recipientAddress, amount, notBeforeDate, notAfterDate, maxBaseFee, signature
+        );
+
+        // Expect revert for unauthorized caller
+        vm.startPrank(relayAddress);
+        vm.expectRevert(abi.encodeWithSelector(Unauthorized.selector, relayAddress));
+        transferScheduler.cancelScheduledTransfer(owner, nonce);
+        vm.stopPrank();
+    }
+
+    function testCancelScheduledTransferInvalidNonce() public {
+        // Expect revert for invalid nonce
+        uint96 badNonce = 123;
+        vm.startPrank(owner);
+        vm.expectRevert(InvalidNonce.selector);
+        transferScheduler.cancelScheduledTransfer(owner, badNonce);
+        vm.stopPrank();
+    }
+
+    function testCancelScheduledTransferAlreadyCompleted() public {
+        // Queue a scheduled transfer and execute it
+        transferScheduler.queueScheduledTransfer(
+            owner, nonce, address(token0), recipientAddress, amount, notBeforeDate, notAfterDate, maxBaseFee, signature
+        );
+        transferScheduler.executeScheduledTransfer(scheduledTransferDetails, signature);
+
+        // Expect revert for trying to cancel an already completed transfer
+        vm.startPrank(owner);
+        vm.expectRevert(abi.encodeWithSelector(InvalidNonceStatus.selector, Status.completed));
+        transferScheduler.cancelScheduledTransfer(owner, nonce);
         vm.stopPrank();
     }
 

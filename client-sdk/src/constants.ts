@@ -1,4 +1,4 @@
-export const TransferSchedulerContractAddress = '0xbB0b174A5459af5787a54C91EeB957cb9b14bc56';
+export const TransferSchedulerContractAddress = '0xBa551D945d9d4f14F7F6abc9abd26BD2684fA940';
 
 
 export const transferSchedulerABI = [
@@ -19,6 +19,24 @@ export const transferSchedulerABI = [
             }
         ],
         "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "cancelScheduledTransfer",
+        "inputs": [
+            {
+                "name": "_wallet",
+                "type": "address",
+                "internalType": "address"
+            },
+            {
+                "name": "_nonce",
+                "type": "uint96",
+                "internalType": "uint96"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
     },
     {
         "type": "function",
@@ -177,16 +195,16 @@ export const transferSchedulerABI = [
                 "internalType": "address"
             },
             {
-                "name": "_completed",
-                "type": "bool",
-                "internalType": "bool"
+                "name": "_status",
+                "type": "uint8",
+                "internalType": "enum Status"
             }
         ],
         "outputs": [
             {
                 "name": "",
                 "type": "tuple[]",
-                "internalType": "struct TransferSchedulerV4.QueuedTransferRecord[]",
+                "internalType": "struct QueuedTransferRecord[]",
                 "components": [
                     {
                         "name": "nonce",
@@ -347,9 +365,9 @@ export const transferSchedulerABI = [
                 "internalType": "uint40"
             },
             {
-                "name": "completed",
-                "type": "bool",
-                "internalType": "bool"
+                "name": "status",
+                "type": "uint8",
+                "internalType": "enum Status"
             },
             {
                 "name": "exists",
@@ -615,6 +633,17 @@ export const transferSchedulerABI = [
     },
     {
         "type": "error",
+        "name": "InvalidNonceStatus",
+        "inputs": [
+            {
+                "name": "status",
+                "type": "uint8",
+                "internalType": "enum Status"
+            }
+        ]
+    },
+    {
+        "type": "error",
         "name": "InvalidSignature",
         "inputs": []
     },
@@ -711,6 +740,17 @@ export const transferSchedulerABI = [
                 "name": "slot",
                 "type": "bytes32",
                 "internalType": "bytes32"
+            }
+        ]
+    },
+    {
+        "type": "error",
+        "name": "Unauthorized",
+        "inputs": [
+            {
+                "name": "caller",
+                "type": "address",
+                "internalType": "address"
             }
         ]
     }

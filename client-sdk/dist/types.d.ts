@@ -24,9 +24,14 @@ export type QueuedTransferRecords = {
     nonce: bigint;
     blockNumber: number;
 }[];
+export declare enum Status {
+    notCompleted = 0,
+    completed = 1,
+    cancelled = 2
+}
 export type AddressNonceRecord = {
     blockNumber: number;
-    completed: boolean;
+    status: Status;
     exists: boolean;
 };
 //# sourceMappingURL=types.d.ts.map

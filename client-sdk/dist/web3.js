@@ -7,7 +7,7 @@ function createTypedData(chainId, scheduledTransfer) {
     return {
         primaryType: 'ScheduledTransfer',
         domain: {
-            name: 'TransferSchedulerV1',
+            name: 'TransferScheduler',
             version: '1',
             chainId: chainId,
             verifyingContract: constants_1.TransferSchedulerContractAddress

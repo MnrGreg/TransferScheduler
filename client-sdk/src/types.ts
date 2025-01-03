@@ -27,8 +27,14 @@ export type QueuedTransferRecords = {
     blockNumber: number;
 }[];
 
+export enum Status {
+    notCompleted = 0,
+    completed = 1,
+    cancelled = 2
+}
+
 export type AddressNonceRecord = {
     blockNumber: number;
-    completed: boolean;
+    status: Status;
     exists: boolean;
 }

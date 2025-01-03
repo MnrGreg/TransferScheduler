@@ -202,7 +202,7 @@ export function QueueTransferTransaction() {
         try {
             const signature = await signTypedData(config, {
                 domain: {
-                    name: 'TransferSchedulerV1',
+                    name: 'TransferScheduler',
                     version: '1',
                     chainId: BigInt(chainId),
                     verifyingContract: TransferSchedulerContractAddress,

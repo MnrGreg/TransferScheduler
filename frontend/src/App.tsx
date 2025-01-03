@@ -3,7 +3,7 @@ import { useAccount, useConnect, useDisconnect, useWatchContractEvent } from 'wa
 import { QueueTransferTransaction } from './SendTransaction';
 import { readContract } from '@wagmi/core';
 import { config } from './wagmi';
-import { TransferSchedulerContractAddress, transferSchedulerABI, QueuedTransferRecords, TransferScheduledEventLog } from 'transfer-scheduler-sdk';
+import { TransferSchedulerContractAddress, transferSchedulerABI, QueuedTransferRecords, TransferScheduledEventLog, Status } from 'transfer-scheduler-sdk';
 import { getContractEvents } from 'viem/actions';
 import { formatGwei } from 'viem'
 
@@ -83,7 +83,7 @@ const GetUncompletedTransfers = () => {
             abi: transferSchedulerABI,
             address: TransferSchedulerContractAddress,
             functionName: 'getScheduledTransfers',
-            args: [address, false],
+            args: [address, Status.notCompleted],
           });
           const mutableTransfers = [...transfersResult];
           setTransfers(mutableTransfers);
@@ -269,7 +269,7 @@ const GetCompletedTransfers = () => {
             abi: transferSchedulerABI,
             address: TransferSchedulerContractAddress,
             functionName: 'getScheduledTransfers',
-            args: [address, true],
+            args: [address, Status.completed],
           });
           const mutableTransfers = [...transfersResult];
           setTransfers(mutableTransfers);

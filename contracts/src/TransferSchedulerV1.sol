@@ -1,19 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
+// Importing necessary interfaces and libraries
 import {IScheduledTransfer} from "./interfaces/IScheduledTransfer.sol";
-
 import {ScheduledTransferHash} from "./libraries/ScheduledTransferHash.sol";
 import {SignatureVerification} from "permit2/src/libraries/SignatureVerification.sol";
+import {addressNonceRecord, Status, QueuedTransferRecord} from "./types/TransferSchedulerTypes.sol";
 import {
     TransferTooLate,
     TransferTooEarly,
     InsufficientTokenAllowance,
     InsufficientGasTokenAllowance,
     MaxBaseFeeExceeded,
-    InvalidNonce
-} from "./TransferErrors.sol";
-
+    InvalidNonce,
+    Unauthorized,
+    InvalidNonceStatus
+} from "./TransferSchedulerErrors.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
@@ -21,39 +23,44 @@ import {EIP712Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/crypt
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
+// Main contract definition
 contract TransferSchedulerV1 is IScheduledTransfer, EIP712Upgradeable, UUPSUpgradeable, OwnableUpgradeable {
-    using SignatureVerification for bytes;
-    using SafeTransferLib for ERC20;
-    using ScheduledTransferHash for ScheduledTransferDetails;
+    using SignatureVerification for bytes; // Allows bytes to use signature verification functions
+    using SafeTransferLib for ERC20; // Allows ERC20 tokens to use safe transfer functions
+    using ScheduledTransferHash for ScheduledTransferDetails; // Allows ScheduledTransferDetails to use hashing functions
 
-    address relayGasToken;
-    uint8 relayGasCommissionPercentage;
+    // State variables
+    address relayGasToken; // Address of the token used for gas payments
+    uint8 relayGasCommissionPercentage; // Percentage of gas commission charged
+    uint32 relayGasUsage; // Amount of gas used for relay operations
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers(); // Prevents the contract from being initialized in the constructor
+    }
 
     // The initialize function will be used to set up the initial state of the contract.
-    function initialize(address _relayGasToken, uint8 _relayGasCommissionPercentage) public initializer {
+    function initialize(address _relayGasToken, uint8 _relayGasCommissionPercentage, uint32 _relayGasUsage)
+        public
+        initializer
+    {
         __Ownable_init(msg.sender);
         __UUPSUpgradeable_init();
-        __EIP712_init("TransferSchedulerV1", "1");
+        __EIP712_init("TransferScheduler", "1");
         relayGasToken = _relayGasToken;
-        relayGasCommissionPercentage = _relayGasCommissionPercentage;
+        relayGasCommissionPercentage = _relayGasCommissionPercentage; // Set the gas commission percentage
+        relayGasUsage = _relayGasUsage; // Set the gas usage amount
     }
 
+    // Function to authorize upgrades, only callable by the owner
     function _authorizeUpgrade(address _newImplementation) internal override onlyOwner {}
 
-    // * dApps can query the queue for a particular wallet address and show future transfers
-    // * relays can query onchain
-    struct addressNonceRecord {
-        uint40 blockNumber;
-        bool completed; //TODO: consider changing to include cancelled
-        bool exists;
-    }
+    // Mappings to store transfer records
+    mapping(address => mapping(uint96 => addressNonceRecord)) public transfers; // Maps wallet addresses to their transfer records
+    mapping(address => uint96[]) private addressNonceIndices; // Maps wallet addresses to their nonces
+    mapping(address => mapping(uint256 => uint256)) private nonceBitmap; // Bitmap for nonce tracking
 
-    mapping(address => mapping(uint96 => addressNonceRecord)) public transfers;
-    mapping(address => uint96[]) public addressNonceIndices;
-    mapping(address => mapping(uint256 => uint256)) public nonceBitmap;
-
-    // emit event for relays to discovery and schedule
-    // ToDo: should nonces be indexed?
+    // Event emitted when a transfer is scheduled
     event TransferScheduled(
         address indexed owner,
         uint96 nonce,
@@ -66,12 +73,10 @@ contract TransferSchedulerV1 is IScheduledTransfer, EIP712Upgradeable, UUPSUpgra
         bytes signature
     );
 
-    // emit event for after succesful execution
-    // ToDo: should nonces be indexed?
+    // Event emitted after a successful transfer execution
     event TransferExecuted(address indexed owner, uint96 nonce);
 
-    // * Ability to track the state of the transfer through EVM storage [Optional]
-    // ToDo: allow ownerto overwrite with same nonce to replace or nullify
+    // Function to queue a scheduled transfer
     function queueScheduledTransfer(
         address _wallet,
         uint96 _nonce,
@@ -83,23 +88,21 @@ contract TransferSchedulerV1 is IScheduledTransfer, EIP712Upgradeable, UUPSUpgra
         uint40 _maxBaseFee,
         bytes calldata _signature
     ) public {
+        // If the transfer does not exist, add its nonce to the indices
         if (!transfers[_wallet][_nonce].exists) {
             addressNonceIndices[_wallet].push(_nonce);
         }
-        transfers[_wallet][_nonce] = addressNonceRecord(uint40(block.number), false, true);
+        // Create a new transfer record
+        transfers[_wallet][_nonce] = addressNonceRecord(uint40(block.number), Status.notCompleted, true);
 
+        // Emit the TransferScheduled event
         emit TransferScheduled(
             _wallet, _nonce, _token, _to, _amount, _notBeforeDate, _notAfterDate, _maxBaseFee, _signature
         );
     }
 
-    struct QueuedTransferRecord {
-        uint96 nonce;
-        uint40 blockNumber;
-    }
-
-    // function to get the transfers of a particular wallet address
-    function getScheduledTransfers(address _wallet, bool _completed)
+    // Function to get scheduled transfers for a wallet
+    function getScheduledTransfers(address _wallet, Status _status)
         public
         view
         returns (QueuedTransferRecord[] memory)
@@ -107,7 +110,7 @@ contract TransferSchedulerV1 is IScheduledTransfer, EIP712Upgradeable, UUPSUpgra
         // Count matching transfers
         uint256 count = 0;
         for (uint256 i = 0; i < addressNonceIndices[_wallet].length; i++) {
-            if (transfers[_wallet][addressNonceIndices[_wallet][i]].completed == _completed) {
+            if (transfers[_wallet][addressNonceIndices[_wallet][i]].status == _status) {
                 count++;
             }
         }
@@ -119,25 +122,33 @@ contract TransferSchedulerV1 is IScheduledTransfer, EIP712Upgradeable, UUPSUpgra
         uint256 index = 0;
         for (uint256 i = 0; i < addressNonceIndices[_wallet].length; i++) {
             uint96 nonce = addressNonceIndices[_wallet][i];
-            if (transfers[_wallet][nonce].completed == _completed) {
+            if (transfers[_wallet][nonce].status == _status) {
                 records[index] =
                     QueuedTransferRecord({nonce: nonce, blockNumber: transfers[_wallet][nonce].blockNumber});
                 index++;
             }
         }
 
-        return records;
+        return records; // Return the array of queued transfers
     }
 
-    function getGasCommissionPercentage() public view returns (uint8) {
-        return relayGasCommissionPercentage;
+    // Function to get the relay gas usage
+    function getRelayGasUsage() public view returns (uint32) {
+        return relayGasUsage; // Return the gas usage
     }
 
-    function getGasToken() public view returns (address) {
-        return relayGasToken;
+    // Function to get the relay gas commission percentage
+    function getRelayGasCommissionPercentage() public view returns (uint8) {
+        return relayGasCommissionPercentage; // Return the commission percentage
+    }
+
+    // Function to get the relay gas token address
+    function getRelayGasToken() public view returns (address) {
+        return relayGasToken; // Return the gas token address
     }
 
     ///// @inheritdoc IScheduledTransfer
+    // Function to execute a scheduled transfer
     function executeScheduledTransfer(
         ScheduledTransferDetails memory scheduledTransferDetails,
         bytes calldata signature
@@ -145,77 +156,94 @@ contract TransferSchedulerV1 is IScheduledTransfer, EIP712Upgradeable, UUPSUpgra
         _executeScheduledTransfer(scheduledTransferDetails, signature);
     }
 
+    // Internal function to handle the execution of a scheduled transfer
     function _executeScheduledTransfer(
         ScheduledTransferDetails memory scheduledTransferDetails,
         bytes calldata signature
     ) private {
+        // Check if the transfer is too early
         if (block.timestamp < scheduledTransferDetails.notBeforeDate) {
             revert TransferTooEarly(scheduledTransferDetails.notBeforeDate);
         }
 
+        // Check if the transfer is too late
         if (block.timestamp > scheduledTransferDetails.notAfterDate) {
             revert TransferTooLate(scheduledTransferDetails.notAfterDate);
         }
 
+        // Check if the base fee exceeds the maximum allowed
         if (block.basefee > scheduledTransferDetails.maxBaseFee) {
             revert MaxBaseFeeExceeded(block.basefee, scheduledTransferDetails.maxBaseFee);
         }
 
+        // Check the allowance of the token for the transfer
         uint256 spenderTokenAllowance =
             ERC20(scheduledTransferDetails.token).allowance(scheduledTransferDetails.owner, address(this));
         if (scheduledTransferDetails.amount > spenderTokenAllowance) {
             revert InsufficientTokenAllowance(spenderTokenAllowance);
         }
 
+        // Check the allowance of the gas token for the relay
         uint256 spenderGasTokenAllowance = ERC20(relayGasToken).allowance(scheduledTransferDetails.owner, address(this));
-        if (block.basefee * 140000 * (1 + relayGasCommissionPercentage / 100) > spenderGasTokenAllowance) {
+        if (((block.basefee * relayGasUsage * (100 + relayGasCommissionPercentage)) / 100) > spenderGasTokenAllowance) {
             revert InsufficientGasTokenAllowance(spenderGasTokenAllowance);
         }
 
+        // Use the nonce for this transfer
         _useUnorderedNonce(scheduledTransferDetails.owner, scheduledTransferDetails.nonce);
 
+        // Hash the scheduled transfer details for signature verification
         bytes32 hashed = _hashTypedDataV4(scheduledTransferDetails.hash());
 
+        // Verify the signature
         SignatureVerification.verify(signature, hashed, scheduledTransferDetails.owner);
 
+        // If there is an amount to transfer, execute the transfer
         if (scheduledTransferDetails.amount != 0) {
             ERC20(scheduledTransferDetails.token).safeTransferFrom(
                 scheduledTransferDetails.owner, scheduledTransferDetails.to, scheduledTransferDetails.amount
             );
-            // Refund relay for transaction (140k gas usage) and add commission in gas
+            // Refund the relay for the transaction
             ERC20(relayGasToken).safeTransferFrom(
                 scheduledTransferDetails.owner,
                 msg.sender,
-                block.basefee * 140000 * (1 + relayGasCommissionPercentage / 100)
+                ((block.basefee * relayGasUsage * (100 + relayGasCommissionPercentage)) / 100)
             );
         }
 
-        // If ScheduledTransefer was queued on-chain, update on-chain state to .completed=true and emit event
+        // Update the transfer status to completed and emit an event
         if (transfers[scheduledTransferDetails.owner][scheduledTransferDetails.nonce].exists == true) {
-            transfers[scheduledTransferDetails.owner][scheduledTransferDetails.nonce].completed = true;
+            transfers[scheduledTransferDetails.owner][scheduledTransferDetails.nonce].status = Status.completed;
             emit TransferExecuted(scheduledTransferDetails.owner, scheduledTransferDetails.nonce);
         }
     }
 
-    /// @notice Checks whether a nonce is taken and sets the bit at the bit position in the bitmap at the word position
-    /// @param from The address to use the nonce at
-    /// @param nonce The nonce to spend
+    // Function to cancel a scheduled transfer only callable by the wallet owner
+    function cancelScheduledTransfer(address _wallet, uint96 _nonce) external {
+        if (msg.sender != _wallet) revert Unauthorized(msg.sender);
+
+        if (!transfers[_wallet][_nonce].exists) revert InvalidNonce();
+
+        if (transfers[_wallet][_nonce].status == Status.notCompleted) {
+            transfers[_wallet][_nonce].status = Status.cancelled;
+        } else {
+            revert InvalidNonceStatus(transfers[_wallet][_nonce].status);
+        }
+    }
+
+    // Function to check if a nonce is taken and set the bit in the bitmap
     function _useUnorderedNonce(address from, uint256 nonce) internal {
         (uint256 wordPos, uint256 bitPos) = bitmapPositions(nonce);
         uint256 bit = 1 << bitPos;
         uint256 flipped = nonceBitmap[from][wordPos] ^= bit;
 
+        // Revert if the nonce is invalid
         if (flipped & bit == 0) revert InvalidNonce();
     }
 
-    /// @notice Returns the index of the bitmap and the bit position within the bitmap. Used for unordered nonces
-    /// @param nonce The nonce to get the associated word and bit positions
-    /// @return wordPos The word position or index into the nonceBitmap
-    /// @return bitPos The bit position
-    /// @dev The first 248 bits of the nonce value is the index of the desired bitmap
-    /// @dev The last 8 bits of the nonce value is the position of the bit in the bitmap
+    // Function to return the index of the bitmap and the bit position within the bitmap
     function bitmapPositions(uint256 nonce) private pure returns (uint256 wordPos, uint256 bitPos) {
-        wordPos = uint248(nonce >> 8);
-        bitPos = uint8(nonce);
+        wordPos = uint248(nonce >> 8); // Get the word position
+        bitPos = uint8(nonce); // Get the bit position
     }
 }

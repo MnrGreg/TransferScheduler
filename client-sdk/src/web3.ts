@@ -1,6 +1,6 @@
 import { Web3, Eip712TypedData } from "web3";
 import { TransferSchedulerContractAddress, transferSchedulerABI } from './constants';
-import { ScheduledTransfer, TransferScheduledEventLog, QueuedTransferRecords, AddressNonceRecord } from './types';
+import { ScheduledTransfer, TransferScheduledEventLog, QueuedTransferRecords, AddressNonceRecord, Status } from './types';
 
 // Function to create typed data for Scheduled Transfer
 export function createTypedData(
@@ -10,7 +10,7 @@ export function createTypedData(
     return {
         primaryType: 'ScheduledTransfer',
         domain: {
-            name: 'TransferSchedulerV1',
+            name: 'TransferScheduler',
             version: '1',
             chainId: chainId,
             verifyingContract: TransferSchedulerContractAddress
@@ -53,7 +53,7 @@ export async function getRelayCharge(web3: Web3, maxBaseFee: number) {
     return relayCharge;
 }
 
-export async function fetchQueuedTransfers(web3: Web3, address: `0x${string}`, status: boolean) {
+export async function fetchQueuedTransfers(web3: Web3, address: `0x${string}`, status: Status) {
     const scheduledTransferContract = new web3.eth.Contract(transferSchedulerABI, TransferSchedulerContractAddress);
 
     const transferScheduledEventLogs: TransferScheduledEventLog[] = [];
