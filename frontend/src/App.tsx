@@ -1,8 +1,8 @@
 import React from 'react';
-import { useAccount, useConnect, useDisconnect, useWatchContractEvent } from 'wagmi';
+import { useAccount, useConnect, useDisconnect, useWatchContractEvent, useSwitchChain, useEnsAvatar, useEnsName } from 'wagmi';
 import { QueueTransferTransaction } from './SendTransaction';
 import { readContract } from '@wagmi/core';
-import { config } from './wagmi';
+import { config, mainnetConfig } from './wagmi';
 import { TransferSchedulerContractAddress, transferSchedulerABI, QueuedTransferRecords, TransferScheduledEventLog, Status } from 'transfer-scheduler-sdk';
 import { getContractEvents } from 'viem/actions';
 import { formatGwei } from 'viem'
@@ -10,7 +10,6 @@ import { formatGwei } from 'viem'
 type TransferScheduledEventLogs = TransferScheduledEventLog[];
 
 export async function getTokenSymbol(tokenAddress: `0x${string}`): Promise<string> {
-
   // Fetch token name if we have a valid token address
   try {
     return await readContract(config, {
@@ -64,6 +63,7 @@ const GetUncompletedTransfers = () => {
     abi: transferSchedulerABI,
     eventName: 'TransferScheduled',
     poll: true,
+    pollingInterval: 5_00,
     onLogs: () => setUpdateTrigger(prev => prev + 1),
   });
 
@@ -72,6 +72,7 @@ const GetUncompletedTransfers = () => {
     abi: transferSchedulerABI,
     eventName: 'TransferExecuted',
     poll: true,
+    pollingInterval: 5_00,
     onLogs: () => setUpdateTrigger(prev => prev + 1),
   });
 
@@ -247,6 +248,7 @@ const GetCompletedTransfers = () => {
       owner: address
     },
     poll: true,
+    pollingInterval: 5_00,
     onLogs: () => setUpdateTrigger(prev => prev + 1),
   });
 
@@ -258,6 +260,7 @@ const GetCompletedTransfers = () => {
       owner: address
     },
     poll: true,
+    pollingInterval: 5_00,
     onLogs: () => setUpdateTrigger(prev => prev + 1),
   });
 
@@ -419,21 +422,40 @@ const GetCompletedTransfers = () => {
 };
 
 function App() {
-  const { address, chainId, status: accountStatus, chain } = useAccount();
-  const { connect, connectors, error: connectError, status: isConnecting } = useConnect();
+  const { address, chainId, status: accountStatus, chain } = useAccount({ config: config });
+  const { connect, connectors, error: connectError, status: isConnecting } = useConnect({ config: config });
   const { disconnect } = useDisconnect();
+  const { chains, switchChain, status: switchChainStatus } = useSwitchChain({ config: config });
+  const { data: ensName } = useEnsName({ config: mainnetConfig, address: address })
 
   return (
     <>
       <div style={{ padding: '0px', maxWidth: '600px', margin: '0 auto', textAlign: 'left', border: 'none' }}>
         <h3 style={{ fontSize: '0.875rem', padding: '0px', marginTop: '0px', marginBottom: '4px' }}>TransferScheduler Contract: {TransferSchedulerContractAddress}</h3>
+
         <div style={{ fontSize: '0.875rem', padding: '0px', marginTop: '0px', marginBottom: '0px' }}>Chain: {chain?.name} | {chainId} | {accountStatus} {accountStatus === 'connected' && (
           <button type="button" onClick={() => disconnect()} style={{ margin: '4px 0', padding: '0px', marginTop: '0px', marginBottom: '0px' }}>
             Disconnect
           </button>
         )}</div>
-        <div style={{ fontSize: '0.875rem', padding: '0px', marginTop: '0px', marginBottom: '10px' }}>Wallet address: {address}</div>
-      </div>
+        {accountStatus === 'connected' && (
+          <div style={{ fontSize: '0.875rem', padding: '0px', marginTop: '0px', marginBottom: '0px' }}>
+            Select chain: {chains.map((chain) => (
+              <button key={chain.id} onClick={() => switchChain({ chainId: chain.id })}>
+                {chain.name}
+              </button>
+            ))}
+          </div>
+        )
+        }
+        {accountStatus === 'connected' && (
+          < div style={{ display: 'flex', alignItems: 'center', fontSize: '0.875rem', padding: '0px', marginTop: '0px', marginBottom: '10px' }}>
+            Wallet address: &nbsp; {address && <div>{ensName ? `${ensName}` : address} </div>}
+          </div>
+        )
+        }
+
+      </div >
 
       {accountStatus !== 'connected' && (
         <div style={{ padding: '6px', maxWidth: '600px', margin: '0 auto', textAlign: 'left' }}>
@@ -446,17 +468,20 @@ function App() {
           {isConnecting && <div style={{ fontSize: '0.875rem' }}>Connecting...</div>}
           {connectError && <div style={{ fontSize: '0.875rem' }}>{connectError.message}</div>}
         </div>
-      )}
+      )
+      }
 
-      {accountStatus === 'connected' && (
-        <div style={{ padding: '0px', maxWidth: '600px', margin: '0 auto', textAlign: 'left', border: 'none' }}>
-          <QueueTransferTransaction />
-          <h3 style={{ fontSize: '0.875rem', border: 'none' }}><span title="getTransfers(complete=false)">Uncompleted Scheduled Transfers</span></h3>
-          <GetUncompletedTransfers />
-          <h3 style={{ fontSize: '0.875rem', border: 'none' }}><span title="getTransfers(complete=true)">Completed Scheduled Transfers</span></h3>
-          <GetCompletedTransfers />
-        </div>
-      )}
+      {
+        switchChainStatus === 'success' && (
+          <div style={{ padding: '0px', maxWidth: '600px', margin: '0 auto', textAlign: 'left', border: 'none' }}>
+            <QueueTransferTransaction />
+            <h3 style={{ fontSize: '0.875rem', border: 'none' }}><span title="getTransfers(complete=false)">Uncompleted Scheduled Transfers</span></h3>
+            <GetUncompletedTransfers />
+            <h3 style={{ fontSize: '0.875rem', border: 'none' }}><span title="getTransfers(complete=true)">Completed Scheduled Transfers</span></h3>
+            <GetCompletedTransfers />
+          </div>
+        )
+      }
       <div style={{ textAlign: 'center', marginTop: '30px' }}>
         <a href="https://github.com/MnrGreg/TransferScheduler" target="_blank" rel="noopener noreferrer">
           <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub Logo" style={{ width: '20px', height: '20px' }} />
