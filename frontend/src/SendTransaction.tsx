@@ -11,6 +11,11 @@ import { getTokenSymbol, getTokenDecimals } from './App';
 import { formatGwei, formatEther, parseGwei } from 'viem'
 import { TokenAllowances } from './TokenAllowances';
 
+interface Token {
+    contractAddress: string;
+    // Add other properties if needed
+}
+
 export function QueueTransferTransaction() {
     const { address, chainId } = useAccount();
     const [hash, setHash] = useState<`0x${string}` | undefined>();
@@ -21,7 +26,8 @@ export function QueueTransferTransaction() {
     const [relayGasTokenName, setRelayGasTokenName] = React.useState<string>('');
     const [relayGasCommissionPercentage, setRelayGasCommissionPercentage] = useState<number | null>(null);
     const [relayGasUsage, setRelayGasUsage] = useState<number | null>(null);
-    const [token, setToken] = React.useState<`0x${string}` | null>(null);
+    const [tokens, setTokens] = useState<{ name: string; address: string }[]>([]);
+    const [selectedToken, setSelectedToken] = useState('');
     const [amountInput, setAmountInput] = useState<string>(''); // Temporary state for input
     const [amount, setAmount] = useState<bigint | null>(null); // State for BigInt amount
     const [ethPrice, setEthPrice] = useState<number | null>(null);
@@ -47,7 +53,6 @@ export function QueueTransferTransaction() {
     React.useEffect(() => {
         fetchMaxBaseFee();
     }, []);
-
 
     const fetchRelayGasToken = async () => {
         try {
@@ -106,6 +111,56 @@ export function QueueTransferTransaction() {
         fetchRelayGasCommissionPercentage();
     }, []);
 
+    const fetchTokens = async () => {
+        // TODO check if Alchemy has a lookup endpoint
+        let hostname = '';
+        if (chainId === 8453) {
+            hostname = 'base-mainnet.g.alchemy.com';
+        } else if (chainId === 42161) {
+            hostname = 'arb-mainnet.g.alchemy.com';
+        } else if (chainId === 11155111) {
+            hostname = 'eth-sepolia.g.alchemy.com';
+        }
+
+        const url = `https://${hostname}/v2/FRtsWQk6EQltAZCVFgjCV3ZGgniMT5L9`;
+        const headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        };
+
+        const body = JSON.stringify({
+            id: 1,
+            jsonrpc: "2.0",
+            method: "alchemy_getTokenBalances",
+            params: [address, "erc20"]
+        });
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: headers,
+                body: body
+            });
+            const data = await response.json();
+
+            const tokenList = await Promise.all(data.result.tokenBalances.map(async (token: Token) => ({
+                name: await getTokenSymbol(token.contractAddress as `0x${string}`),
+                address: token.contractAddress
+            })));
+            setTokens(tokenList);
+        } catch (error) {
+            console.error('Error fetching tokens:', error);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchTokens();
+    }, [address]);
+
+    const handleTokenChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        setSelectedToken(event.target.value);
+    };
+
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setAmountInput(e.target.value); // Update the input value
     };
@@ -113,10 +168,10 @@ export function QueueTransferTransaction() {
     const handleAmountBlur = async () => {
         const value = amountInput;
         // Validate and convert to BigInt
-        if (value !== '' && token !== null) {
+        if (value !== '' && selectedToken !== '') {
             const parsedValue = parseFloat(value);
             if (!isNaN(parsedValue)) {
-                const decimals = await getTokenDecimals(token);
+                const decimals = await getTokenDecimals(selectedToken as `0x${string}`);
                 setAmount(BigInt((parsedValue * Math.pow(10, decimals)).toString())); // Convert to BigInt with decimals
             } else {
                 setAmount(null); // Reset if invalid
@@ -130,17 +185,10 @@ export function QueueTransferTransaction() {
         ? BigInt(relayGasUsage) * (BigInt(100) + BigInt(relayGasCommissionPercentage)) * BigInt(parseGwei(maxBaseFee)) / BigInt(100)
         : BigInt(0);
 
-    const handleTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const tokenAddress = e.target.value as `0x${string}`;
-        setToken(tokenAddress);
-    };
-
     const submit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
-        const token = formData.get('token') as `0x${string}`;
         const to = formData.get('to') as `0x${string}`;
-        const amountStr = formData.get('amount') as string;
         const notBeforeDateInput = (event.currentTarget as HTMLFormElement).querySelector('input[name="notBefore"]') as HTMLInputElement;
         const notAfterDateInput = (event.currentTarget as HTMLFormElement).querySelector('input[name="notAfter"]') as HTMLInputElement;
         const notBeforeDate = Number(notBeforeDateInput.dataset.timestamp || '0');
@@ -151,7 +199,7 @@ export function QueueTransferTransaction() {
         // Get token decimals
         let tokenDecimals;
         try {
-            tokenDecimals = await getTokenDecimals(token);
+            tokenDecimals = await getTokenDecimals(selectedToken as `0x${string}`);
         } catch (error) {
             console.error('Error reading token decimals:', error);
             setError(new Error('Failed to read token decimals'));
@@ -159,14 +207,14 @@ export function QueueTransferTransaction() {
         }
 
         // Parse amount using token decimals
-        const amount = BigInt(Math.floor(Number(amountStr) * Math.pow(10, tokenDecimals)));
+        const amount = BigInt(Math.floor(Number(amountInput) * Math.pow(10, tokenDecimals)));
 
         if (!address) {
             setError(new Error('Address is required'));
             return;
         }
 
-        if (!notBeforeDate || !notAfterDate || !amount || !chainId || !token || !to) {
+        if (!notBeforeDate || !notAfterDate || !amount || !chainId || !selectedToken || !to) {
             setError(new Error('All fields are required'));
             return;
         }
@@ -189,7 +237,7 @@ export function QueueTransferTransaction() {
                 ],
                 outputs: [{ type: 'uint256' }],
             }],
-            address: token,
+            address: selectedToken as `0x${string}`,
             functionName: 'allowance',
             args: [address, TransferSchedulerContractAddress],
         });
@@ -212,7 +260,7 @@ export function QueueTransferTransaction() {
                 message: {
                     owner: address,
                     nonce: nonce,
-                    token: token,
+                    token: selectedToken as `0x${string}`,
                     to: to,
                     amount: amount,
                     spender: TransferSchedulerContractAddress,
@@ -230,7 +278,7 @@ export function QueueTransferTransaction() {
                 args: [
                     address,
                     nonce,
-                    token,
+                    selectedToken as `0x${string}`,
                     to,
                     amount,
                     notBeforeDate,
@@ -270,15 +318,19 @@ export function QueueTransferTransaction() {
         <form onSubmit={submit} style={{ padding: '0px', maxWidth: '600px', margin: '0 auto', border: 'none' }}>
             <div style={{ marginBottom: '8px' }}>
                 <label htmlFor="token" style={{ display: 'block', marginBottom: '8px' }}>Token:</label>
-                <input
+                <select
                     id="token"
                     name="token"
-                    value={token || ''}
-                    placeholder="Enter 0x token address"
+                    value={selectedToken}
+                    onChange={handleTokenChange}
                     style={{ width: '100%', padding: '8px', border: '1px solid #ccc', boxSizing: 'border-box' }}
                     required
-                    onChange={handleTokenChange}
-                />
+                >
+                    <option value="">Select a token</option>
+                    {tokens.map(token => (
+                        <option key={token.address} value={token.address}>{token.name} - {token.address}</option>
+                    ))}
+                </select>
             </div>
             <div style={{ marginBottom: '8px' }}>
                 <label htmlFor="to" style={{ display: 'block', marginBottom: '8px' }}>To:</label>
@@ -365,7 +417,7 @@ export function QueueTransferTransaction() {
             {isConfirming && <div>Waiting for confirmation...</div>}
             {isConfirmed && <div>Transaction confirmed.</div>}
             <TokenAllowances
-                transferToken={token}
+                transferToken={selectedToken as `0x${string}`}
                 transferAmount={amount}
                 gasToken={relayGasToken}
                 gasAmount={relayCommissionTotal}

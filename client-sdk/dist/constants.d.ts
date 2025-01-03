@@ -1,4 +1,4 @@
-export declare const TransferSchedulerContractAddress = "0x67BdbA4214c426DB415A50DF30Cfc2079c953924";
+export declare const TransferSchedulerContractAddress = "0xBa551D945d9d4f14F7F6abc9abd26BD2684fA940";
 export declare const transferSchedulerABI: readonly [{
     readonly type: "constructor";
     readonly inputs: readonly [];
