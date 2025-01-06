@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAccount, useConnect, useDisconnect, useWatchContractEvent, useSwitchChain, useEnsAvatar, useEnsName } from 'wagmi';
+import { useAccount, useConnect, useDisconnect, useWatchContractEvent, useSwitchChain, useEnsName } from 'wagmi';
 import { QueueTransferTransaction } from './SendTransaction';
 import { readContract } from '@wagmi/core';
 import { config, mainnetConfig } from './wagmi';
@@ -289,7 +289,6 @@ const GetCompletedTransfers = () => {
       if (!transfers) {
         return;
       }
-      console.log("Completed transfers:", transfers);
       const transferScheduledEventLogs: TransferScheduledEventLog[] = [];
       // for each transfer, use the blockNumber to get the contract event detail for the nonce
       for (let i = 0; i < transfers.length; i++) {
@@ -425,7 +424,7 @@ function App() {
   const { address, chainId, status: accountStatus, chain } = useAccount({ config: config });
   const { connect, connectors, error: connectError, status: isConnecting } = useConnect({ config: config });
   const { disconnect } = useDisconnect();
-  const { chains, switchChain, status: switchChainStatus } = useSwitchChain({ config: config });
+  const { chains, switchChainAsync, status: switchChainStatus } = useSwitchChain({ config: config });
   const { data: ensName } = useEnsName({ config: mainnetConfig, address: address })
 
   return (
@@ -441,7 +440,9 @@ function App() {
         {accountStatus === 'connected' && (
           <div style={{ fontSize: '0.875rem', padding: '0px', marginTop: '0px', marginBottom: '0px' }}>
             Select chain: {chains.map((chain) => (
-              <button key={chain.id} onClick={() => switchChain({ chainId: chain.id })}>
+              <button key={chain.id} onClick={async () => {
+                await switchChainAsync({ chainId: chain.id });
+              }}>
                 {chain.name}
               </button>
             ))}
@@ -454,7 +455,6 @@ function App() {
           </div>
         )
         }
-
       </div >
 
       {accountStatus !== 'connected' && (
@@ -471,21 +471,18 @@ function App() {
       )
       }
 
-      {
-        switchChainStatus === 'success' && (
-          <div style={{ padding: '0px', maxWidth: '600px', margin: '0 auto', textAlign: 'left', border: 'none' }}>
-            <QueueTransferTransaction />
-            <h3 style={{ fontSize: '0.875rem', border: 'none' }}><span title="getTransfers(complete=false)">Uncompleted Scheduled Transfers</span></h3>
-            <GetUncompletedTransfers />
-            <h3 style={{ fontSize: '0.875rem', border: 'none' }}><span title="getTransfers(complete=true)">Completed Scheduled Transfers</span></h3>
-            <GetCompletedTransfers />
-          </div>
-        )
+      {(accountStatus === 'connected' && switchChainStatus !== 'pending') && (
+        <div style={{ padding: '0px', maxWidth: '600px', margin: '0 auto', textAlign: 'left', border: 'none' }}>
+          <QueueTransferTransaction />
+          <h3 style={{ fontSize: '0.875rem', border: 'none' }}><span title="getTransfers(complete=false)">Uncompleted Scheduled Transfers</span></h3>
+          <GetUncompletedTransfers />
+          <h3 style={{ fontSize: '0.875rem', border: 'none' }}><span title="getTransfers(complete=true)">Completed Scheduled Transfers</span></h3>
+          <GetCompletedTransfers />
+        </div>
+      )
       }
       <div style={{ textAlign: 'center', marginTop: '30px' }}>
-        <a href="https://github.com/MnrGreg/TransferScheduler" target="_blank" rel="noopener noreferrer">
-          <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub Logo" style={{ width: '20px', height: '20px' }} />
-        </a>
+        <iframe style={{ border: 'none' }} src="https://ghbtns.com/github-btn.html?user=MnrGreg&repo=TransferScheduler&type=star&count=false" width="52" height="20" title="GitHub"></iframe>
       </div>
     </>
   );

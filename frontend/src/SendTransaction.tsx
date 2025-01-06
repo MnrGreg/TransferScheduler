@@ -398,7 +398,7 @@ export function QueueTransferTransaction() {
                         type="datetime-local"
                         onChange={(e) => {
                             const date = new Date(e.target.value);
-                            const timestamp = Math.floor(date.getTime() / 1000);
+                            const timestamp = Math.floor((date.getTime() + 31536000000) / 1000);   // Current date + 1 year
                             e.target.dataset.timestamp = timestamp.toString();
                         }}
                         style={{ width: '100%', padding: '8px', border: '1px solid #ccc', boxSizing: 'border-box' }}

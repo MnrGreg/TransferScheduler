@@ -159,18 +159,19 @@ const TokenAllowanceRow = ({ token, amount, label }: TokenAllowanceRowProps) => 
             <td style={{ border: '1px solid #ccc', padding: '4px', color: color }}>
                 {allowance === null ? '...' : formatAmount(allowance)}
             </td>
-            <td style={{ border: '1px solid #ccc', maxWidth: '80px', }}>
+            <td style={{ border: '1px solid #ccc', padding: '0px' }}>
                 <input
                     type="text"
                     value={newAllowance}
                     onChange={(e) => setNewAllowance(e.target.value)}
                     placeholder="0.00"
                     style={{
-                        border: 'none',
+                        border: '1px solid #ccc',
+                        width: '100%',
+                        boxSizing: 'border-box',
                         fontSize: '0.6rem',
-                        padding: '4px',
-                        maxWidth: '80px',
-                        backgroundColor: 'transparent'
+                        padding: '3px',
+                        cursor: 'text'
                     }}
                 />
             </td>
