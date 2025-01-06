@@ -410,7 +410,7 @@ export function QueueTransferTransaction() {
                 {isPending ? 'Confirming...' : 'Sign and queue transfer onchain'}
             </button>
             <div style={{ marginBottom: '8px' }}>
-                <span style={{ fontStyle: 'italic' }} title={`relay compensation = block.basefee (${maxBaseFee}) * gas (${relayGasUsage}) * relay commission (${relayGasCommissionPercentage}%)`}>* Relay compensation: {formatEther(relayCommissionTotal)} {relayGasTokenName} ({ethPrice && relayCommissionTotal ? (Number(formatEther(relayCommissionTotal)) * ethPrice).toFixed(2) : '0'} USD)</span>
+                <span style={{ fontStyle: 'italic' }} title={`relay compensation = block.basefee (${maxBaseFee}) * gas (${relayGasUsage}) * relay commission (${relayGasCommissionPercentage}%)`}>* Relay compensation: {formatEther(relayCommissionTotal)} {relayGasTokenName} (${ethPrice && relayCommissionTotal ? (Number(formatEther(relayCommissionTotal)) * ethPrice).toFixed(2) : '0'} USD)</span>
             </div>
             {error && <div style={{ color: 'red', marginBottom: '8px' }}>{error.message}</div>}
             {hash && <div>Transaction hash: {hash}</div>}

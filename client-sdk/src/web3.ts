@@ -101,3 +101,8 @@ export async function getTransfers(web3: Web3, address: `0x${string}`, nonce: nu
     const addressNonceRecord: AddressNonceRecord = await scheduledTransferContract.methods.transfers(address, nonce).call();
     return addressNonceRecord;
 }
+
+export async function cancelScheduledTransfer(web3: Web3, address: `0x${string}`, nonce: number) {
+    const scheduledTransferContract = new web3.eth.Contract(transferSchedulerABI, TransferSchedulerContractAddress);
+    return await scheduledTransferContract.methods.cancelScheduledTransfer(address, nonce).send();
+}
