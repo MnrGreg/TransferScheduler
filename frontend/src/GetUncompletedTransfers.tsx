@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAccount, useWatchContractEvent, useWaitForTransactionReceipt } from 'wagmi';
-import { readContract } from '@wagmi/core';
-import { config } from './wagmi';
+import { readContract, getEnsName } from '@wagmi/core';
+import { config, mainnetConfig } from './wagmi';
 import { TransferSchedulerContractAddress, transferSchedulerABI, QueuedTransferRecords, Status, TransferScheduledEventLog } from 'transfer-scheduler-sdk';
 import { getTokenSymbol, getTokenDecimals } from './App';
 import { getContractEvents } from 'viem/actions';
@@ -20,7 +20,7 @@ export const GetUncompletedTransfers = () => {
     const [updateTrigger, setUpdateTrigger] = React.useState(0);
     const [tokenSymbols, setTokenNames] = React.useState<Record<string, string>>({});
     const [tokenDecimals, setTokenDecimals] = React.useState<Record<string, number>>({});
-
+    const [ensNames, setEnsNames] = React.useState<Record<string, string | null>>({});
     const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
         hash,
     });
@@ -136,6 +136,19 @@ export const GetUncompletedTransfers = () => {
         fetchTokenInfo();
     }, [eventLogs]);
 
+    React.useEffect(() => {
+        const fetchENSNames = async () => {
+            if (!eventLogs) return;
+            const names: Record<string, string | null> = {};
+            for (const log of eventLogs) {
+                const ensName = await getEnsName(mainnetConfig, { address: log.to });
+                names[log.to] = ensName as string;
+            }
+            setEnsNames(names);
+        };
+        fetchENSNames();
+    }, [eventLogs]);
+
     const handleCancel = async (nonce: bigint) => {
         try {
             setIsPending(true);
@@ -202,6 +215,10 @@ export const GetUncompletedTransfers = () => {
                                                 ) : key === 'amount' ? (
                                                     <span title={value.toString()}>
                                                         {(Number(value) / Math.pow(10, tokenDecimals[log.token] || 18)).toString()}
+                                                    </span>
+                                                ) : key === 'to' ? (
+                                                    <span title={value.toString()}>
+                                                        {ensNames[log.to] || log.to}
                                                     </span>
                                                 ) : key === 'maxBaseFee' ? (
                                                     <span title={value.toString()}>
