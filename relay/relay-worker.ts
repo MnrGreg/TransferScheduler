@@ -71,7 +71,7 @@ async function handleTransferScheduledEvent(event: any) {
     let currentTime = Math.floor(new Date().getTime() / 1000);
     if (currentTime < Number(transferScheduledEventLog.notAfterDate)) {
         while (currentTime < Number(transferScheduledEventLog.notBeforeDate)) {
-            const waitTime = Number(transferScheduledEventLog.notBeforeDate) - currentTime;
+            const waitTime = Number(transferScheduledEventLog.notBeforeDate) - currentTime + 4;
             console.log(
                 "Queued Transfer too early. Current Time:",
                 currentTime,
