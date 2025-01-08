@@ -1,5 +1,8 @@
 # TransferScheduler Contract
 
+## Frontend demo
+[![TransferScheduler frontend demo](https://img.youtube.com/vi/DPMkH1oqtj0/0.jpg)](https://youtu.be/DPMkH1oqtj0)
+
 ## Overview
 The TransferScheduler is a public-good smart contract to facilitate scheduled ERC20 token transfers on Ethereum blockchains. It allows users to queue transfers that will be executed at a specified future time, ensuring that transactions occur automatically without the need for manual intervention. This offers:
 
@@ -17,9 +20,6 @@ The TransferScheduler is a public-good smart contract to facilitate scheduled ER
   - If insufficient WETH is available, the relayer will not broadcast the transaction.
 - **Gas Price Threshold**: Transfers will not execute if the network gas price `block.basefee` is higher than the user specified threshold `maxBaseFee`.
 - **Offchain queuing**: ScheduledTransfer signed messages can be provided directly to recipients or third party relays for offchain queuing, thereby avoid onchain queueing gas cost (70k gas).
-
-## Frontend video on Arbitrum Mainnet
-[![TransferScheduler frontend on Arbitrum Mainnet](https://img.youtube.com/vi/0jZ9iCKhaPQ/0.jpg)](https://youtu.be/0jZ9iCKhaPQ)
 
 ## Components
 ### Smart Contract
