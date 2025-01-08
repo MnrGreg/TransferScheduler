@@ -4,8 +4,8 @@ import {
     useAccount,
 } from 'wagmi';
 import { types } from './ScheduledTransferTypedData';
-import { signTypedData, writeContract, simulateContract, readContract, getFeeHistory } from '@wagmi/core';
-import { config } from './wagmi';
+import { signTypedData, writeContract, simulateContract, readContract, getFeeHistory, getEnsAddress, getEnsName } from '@wagmi/core';
+import { config, mainnetConfig } from './wagmi';
 import { TransferSchedulerContractAddress, transferSchedulerABI } from 'transfer-scheduler-sdk';
 import { getTokenSymbol, getTokenDecimals } from './App';
 import { formatGwei, formatEther, parseGwei } from 'viem'
@@ -31,6 +31,9 @@ export function QueueTransferTransaction() {
     const [amountInput, setAmountInput] = useState<string>(''); // Temporary state for input
     const [amount, setAmount] = useState<bigint | null>(null); // State for BigInt amount
     const [ethPrice, setEthPrice] = useState<number | null>(null);
+    const [to, setTo] = React.useState<string>('');
+    const [resolvedName, setResolvedName] = React.useState<string | null>(null);
+    const [resolvedAddress, setResolvedAddress] = React.useState<string | null>(null);
 
     const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
         hash,
@@ -181,14 +184,42 @@ export function QueueTransferTransaction() {
         }
     };
 
+    const handleInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const value = event.target.value;
+        //setTo(value);
+
+        // Check if the input is an ENS name or an address
+        if (value.includes('.eth')) {
+            // Input is likely an ENS name
+            const ensAddress = await getEnsAddress(mainnetConfig, { name: value });
+            if (!ensAddress) {
+                setResolvedName(null);
+                setResolvedAddress(null);
+                return;
+            }
+            setResolvedAddress(ensAddress);
+            setResolvedName(value);
+            setTo(ensAddress);
+        } else {
+            // Input is likely an address
+            const ensName = await getEnsName(mainnetConfig, { address: value as `0x${string}` });
+            if (!ensName) {
+                setResolvedName(null);
+                setResolvedAddress(null);
+                return;
+            }
+            setResolvedName(ensName);
+            setResolvedAddress(value);
+            setTo(value);
+        }
+    };
+
     const relayCommissionTotal = relayGasCommissionPercentage !== null && maxBaseFee !== undefined && relayGasUsage !== null
         ? BigInt(relayGasUsage) * (BigInt(100) + BigInt(relayGasCommissionPercentage)) * BigInt(parseGwei(maxBaseFee)) / BigInt(100)
         : BigInt(0);
 
     const submit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        const formData = new FormData(event.currentTarget);
-        const to = formData.get('to') as `0x${string}`;
         const notBeforeDateInput = (event.currentTarget as HTMLFormElement).querySelector('input[name="notBefore"]') as HTMLInputElement;
         const notAfterDateInput = (event.currentTarget as HTMLFormElement).querySelector('input[name="notAfter"]') as HTMLInputElement;
         const notBeforeDate = Number(notBeforeDateInput.dataset.timestamp || '0');
@@ -261,7 +292,7 @@ export function QueueTransferTransaction() {
                     owner: address,
                     nonce: nonce,
                     token: selectedToken as `0x${string}`,
-                    to: to,
+                    to: to as `0x${string}`,
                     amount: amount,
                     spender: TransferSchedulerContractAddress,
                     notBeforeDate: notBeforeDate,
@@ -279,7 +310,7 @@ export function QueueTransferTransaction() {
                     address,
                     nonce,
                     selectedToken as `0x${string}`,
-                    to,
+                    to as `0x${string}`,
                     amount,
                     notBeforeDate,
                     notAfterDate,
@@ -337,9 +368,15 @@ export function QueueTransferTransaction() {
                 <input
                     id="to"
                     name="to"
-                    placeholder="Enter 0x recipient address"
+                    placeholder="Enter recipient's ENS or 0x address"
                     style={{ width: '100%', padding: '8px', border: '1px solid #ccc', boxSizing: 'border-box' }}
                     required
+                    value={resolvedName ? `${resolvedName} - ${resolvedAddress}` : to}
+                    onChange={(event) => {
+                        const value = event.target.value;
+                        setTo(value); // Update the 'to' state with user input
+                        handleInputChange(event); // Call your existing input change handler
+                    }}
                 />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -410,7 +447,7 @@ export function QueueTransferTransaction() {
                 {isPending ? 'Confirming...' : 'Sign and queue transfer onchain'}
             </button>
             <div style={{ marginBottom: '8px' }}>
-                <span style={{ fontStyle: 'italic' }} title={`relay compensation = block.basefee (${maxBaseFee}) * gas (${relayGasUsage}) * relay commission (${relayGasCommissionPercentage}%)`}>* Relay compensation: {formatEther(relayCommissionTotal)} {relayGasTokenName} (${ethPrice && relayCommissionTotal ? (Number(formatEther(relayCommissionTotal)) * ethPrice).toFixed(2) : '0'} USD)</span>
+                <span style={{ fontStyle: 'italic' }} title={`relay compensation = block.basefee (${maxBaseFee}) * gas (${relayGasUsage}) * relay commission (${relayGasCommissionPercentage}%)`}>* Relay compensation: {formatEther(relayCommissionTotal)} {relayGasTokenName} ({ethPrice && relayCommissionTotal ? (Number(formatEther(relayCommissionTotal)) * ethPrice).toFixed(2) : '0'} USD)</span>
             </div>
             {error && <div style={{ color: 'red', marginBottom: '8px' }}>{error.message}</div>}
             {hash && <div>Transaction hash: {hash}</div>}
