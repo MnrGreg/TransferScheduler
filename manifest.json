@@ -1,0 +1,16 @@
+{
+    "short_name": "ScheduledTransfers",
+    "name": "ScheduledTransfers Safe App",
+    "description": "A public-good smart contract for scheduling ERC20 transfers",
+    "icons": [
+        {
+            "src": "logo.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ],
+    "start_url": ".",
+    "display": "standalone",
+    "theme_color": "#000000",
+    "background_color": "#ffffff"
+}
