@@ -1,12 +1,15 @@
 import { http, createConfig } from 'wagmi'
 import { arbitrum, base, sepolia, mainnet } from 'wagmi/chains'
-import { coinbaseWallet, injected } from 'wagmi/connectors'
+import { coinbaseWallet, injected, safe } from 'wagmi/connectors'
 
 export const config = createConfig({
   chains: [arbitrum, base, sepolia],
   connectors: [
     injected(),
     coinbaseWallet(),
+    safe({
+      allowedDomains: [/app.safe.global$/],
+    }),
     //walletConnect({ projectId: import.meta.env.VITE_WC_PROJECT_ID }),
   ],
   transports: {
