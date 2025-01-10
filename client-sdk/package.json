@@ -1,5 +1,5 @@
 {
-    "name": "transfer-scheduler-sdk",
+    "name": "@mnrgreg/transfer-scheduler-sdk",
     "version": "1.0.0",
     "main": "dist/index.js",
     "repository": {
