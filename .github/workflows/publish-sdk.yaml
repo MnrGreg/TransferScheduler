@@ -1,0 +1,44 @@
+name: Build and Publish SDK NPM Package
+on:
+  push:
+    branches: [main]
+    paths:
+      - client-sdk/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          cd client-sdk
+          npm ci
+
+      # - name: Run Tests
+      #   run: npm test
+      #   continue-on-error: true
+
+      - name: Build TypeScript application
+        run: |
+          cd client-sdk
+          npm run build
+
+      - name: Increment version and publish to GitHub npm package registry
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        run: |
+          cd client-sdk
+          NEW_VERSION=$(npm version patch --no-git-tag-version)
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "chore(release SDK): $NEW_VERSION"
+          git push origin HEAD:main
+          npm publish

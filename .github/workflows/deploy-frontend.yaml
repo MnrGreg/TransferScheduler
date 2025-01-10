@@ -2,8 +2,7 @@ name: Build and Deploy
 on: 
   push:
     paths:
-      - frontend/**
-      - client-sdk/**      
+      - frontend/**  
 
 permissions:
   contents: write

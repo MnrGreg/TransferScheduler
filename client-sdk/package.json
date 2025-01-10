@@ -2,6 +2,15 @@
     "name": "transfer-scheduler-sdk",
     "version": "1.0.0",
     "main": "dist/index.js",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/mnrgreg/TransferScheduler.git"
+    },
+    "publishConfig": {
+        "@mnrgreg:registry": "https://npm.pkg.github.com"
+    },
+    "author": "Gregory May",
+    "license": "MIT",
     "scripts": {
         "build": "tsc",
         "watch": "tsc -w",
