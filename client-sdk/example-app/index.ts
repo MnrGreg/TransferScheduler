@@ -1,12 +1,18 @@
-import { getRelayCharge, queueScheduledTransfer, getGasTokenAddress, fetchQueuedTransfers, createTypedData, TransferSchedulerContractAddress, TransferScheduledEventLog, ScheduledTransfer, Status } from 'transfer-scheduler-sdk';
-
+import { getRelayCharge, queueScheduledTransfer, getGasTokenAddress, fetchQueuedTransfers, createTypedData, TransferSchedulerContractAddress, TransferScheduledEventLog, ScheduledTransfer, Status } from '@mnrgreg/transfer-scheduler-sdk';
 import { Web3, Web3Context } from "web3"
 import crypto from 'crypto';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 const web3Context = new Web3Context('http://127.0.0.1:8545');
 const web3 = new Web3(web3Context);
 
 async function main() {
+    if (!process.env.TRANSFER_TOKEN || !process.env.MAX_BASE_FEE) {
+        throw new Error(`TRANSFER_TOKEN, MAX_BASE_FEE envs required`);
+    }
+    console.log(`TRANSFER_TOKEN: ${process.env.TRANSFER_TOKEN}`);
+    console.log(`MAX_BASE_FEE: ${process.env.MAX_BASE_FEE}`);
 
     const chainId = await web3.eth.getChainId();
     console.log(`ChainID:`, chainId);
@@ -17,7 +23,7 @@ async function main() {
     console.log(`ETH balance for accounts[0]:`, await web3.eth.getBalance(owner));
 
 
-    const token = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    const token = process.env.TRANSFER_TOKEN as `0x${string}`;
     const token_ABI = [{ "type": "constructor", "inputs": [{ "name": "name", "type": "string", "internalType": "string" }, { "name": "symbol", "type": "string", "internalType": "string" }, { "name": "decimals", "type": "uint8", "internalType": "uint8" }], "stateMutability": "nonpayable" }, { "type": "function", "name": "DOMAIN_SEPARATOR", "inputs": [], "outputs": [{ "name": "", "type": "bytes32", "internalType": "bytes32" }], "stateMutability": "view" }, { "type": "function", "name": "allowance", "inputs": [{ "name": "", "type": "address", "internalType": "address" }, { "name": "", "type": "address", "internalType": "address" }], "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }], "stateMutability": "view" }, { "type": "function", "name": "approve", "inputs": [{ "name": "spender", "type": "address", "internalType": "address" }, { "name": "amount", "type": "uint256", "internalType": "uint256" }], "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }], "stateMutability": "nonpayable" }, { "type": "function", "name": "balanceOf", "inputs": [{ "name": "", "type": "address", "internalType": "address" }], "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }], "stateMutability": "view" }, { "type": "function", "name": "decimals", "inputs": [], "outputs": [{ "name": "", "type": "uint8", "internalType": "uint8" }], "stateMutability": "view" }, { "type": "function", "name": "mint", "inputs": [{ "name": "_to", "type": "address", "internalType": "address" }, { "name": "_amount", "type": "uint256", "internalType": "uint256" }], "outputs": [], "stateMutability": "nonpayable" }, { "type": "function", "name": "name", "inputs": [], "outputs": [{ "name": "", "type": "string", "internalType": "string" }], "stateMutability": "view" }, { "type": "function", "name": "nonces", "inputs": [{ "name": "", "type": "address", "internalType": "address" }], "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }], "stateMutability": "view" }, { "type": "function", "name": "permit", "inputs": [{ "name": "owner", "type": "address", "internalType": "address" }, { "name": "spender", "type": "address", "internalType": "address" }, { "name": "value", "type": "uint256", "internalType": "uint256" }, { "name": "deadline", "type": "uint256", "internalType": "uint256" }, { "name": "v", "type": "uint8", "internalType": "uint8" }, { "name": "r", "type": "bytes32", "internalType": "bytes32" }, { "name": "s", "type": "bytes32", "internalType": "bytes32" }], "outputs": [], "stateMutability": "nonpayable" }, { "type": "function", "name": "symbol", "inputs": [], "outputs": [{ "name": "", "type": "string", "internalType": "string" }], "stateMutability": "view" }, { "type": "function", "name": "totalSupply", "inputs": [], "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }], "stateMutability": "view" }, { "type": "function", "name": "transfer", "inputs": [{ "name": "to", "type": "address", "internalType": "address" }, { "name": "amount", "type": "uint256", "internalType": "uint256" }], "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }], "stateMutability": "nonpayable" }, { "type": "function", "name": "transferFrom", "inputs": [{ "name": "from", "type": "address", "internalType": "address" }, { "name": "to", "type": "address", "internalType": "address" }, { "name": "amount", "type": "uint256", "internalType": "uint256" }], "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }], "stateMutability": "nonpayable" }, { "type": "event", "name": "Approval", "inputs": [{ "name": "owner", "type": "address", "indexed": true, "internalType": "address" }, { "name": "spender", "type": "address", "indexed": true, "internalType": "address" }, { "name": "amount", "type": "uint256", "indexed": false, "internalType": "uint256" }], "anonymous": false }, { "type": "event", "name": "Transfer", "inputs": [{ "name": "from", "type": "address", "indexed": true, "internalType": "address" }, { "name": "to", "type": "address", "indexed": true, "internalType": "address" }, { "name": "amount", "type": "uint256", "indexed": false, "internalType": "uint256" }], "anonymous": false }];
     const tokenContract = new web3.eth.Contract(token_ABI, token);
     let balance = await tokenContract.methods.balanceOf(owner).call();
@@ -33,7 +39,7 @@ async function main() {
     const amount = 5 ** 6;
     const notBeforeDate = Math.floor(new Date().getTime() / 1000) + 30; //current time + 30 seconds
     const notAfterDate = Math.floor(new Date().getTime() / 1000) + 60 * 60 * 24 * 7; //current time + 1 week
-    const maxBaseFee = 10000000;
+    const maxBaseFee = Number(process.env.MAX_BASE_FEE);
     const nonceBytes = crypto.randomBytes(6);
     const nonce = BigInt('0x' + nonceBytes.toString('hex'));
 
