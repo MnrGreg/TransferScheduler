@@ -4,9 +4,10 @@ on:
     branches: [main]
     paths:
       - client-sdk/**
+      - "!client-sdk/example-app/**"
 
 jobs:
-  build:
+  build-and-publish-sdk:
     runs-on: ubuntu-latest
     permissions:
       contents: write

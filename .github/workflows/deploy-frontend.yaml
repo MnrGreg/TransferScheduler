@@ -1,14 +1,19 @@
-name: Build and Deploy
+name: Build and Deploy Frontnd
 on: 
   push:
+    branches: [main]
     paths:
-      - frontend/**  
+      - frontend/**
+  workflow_run:
+    workflows: [Build and Publish SDK NPM Package]
+    types:
+      - completed
 
 permissions:
   contents: write
 
 jobs:
-  build-and-deploy:
+  build-and-deploy-frontend:
     concurrency: ci-${{ github.ref }}
     runs-on: ubuntu-latest
 
@@ -16,18 +21,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: pack client-sdk
-        run: |
-          cd client-sdk
-          npm ci
-          npm run build
-          npm pack
-
-      - name: Install and Build
+      - name: NPM Install and Build
         run: |
           cd frontend
-          npm install ../client-sdk/transfer-scheduler-sdk-1.0.0.tgz
-          npm ci
+          npm config set @mnrgreg:registry=https://npm.pkg.github.com/ 
+          npm install @mnrgreg/transfer-scheduler-sdk
           npm run build
 
       - name: Deploy Frontend
