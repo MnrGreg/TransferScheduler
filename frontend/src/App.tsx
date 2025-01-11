@@ -4,7 +4,7 @@ import { GetUncompletedTransfers } from './GetUncompletedTransfers';
 import { GetCompletedTransfers } from './GetCompletedTransfers';
 import { readContract } from '@wagmi/core';
 import { config, mainnetConfig } from './wagmi';
-import { TransferSchedulerContractAddress } from 'transfer-scheduler-sdk';
+import { TransferSchedulerContractAddress } from '@mnrgreg/transfer-scheduler-sdk';
 
 
 export async function getTokenSymbol(tokenAddress: `0x${string}`): Promise<string> {

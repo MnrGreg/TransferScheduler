@@ -6,7 +6,7 @@ import {
 import { types } from './ScheduledTransferTypedData';
 import { signTypedData, writeContract, simulateContract, readContract, getFeeHistory, getEnsAddress, getEnsName } from '@wagmi/core';
 import { config, mainnetConfig } from './wagmi';
-import { TransferSchedulerContractAddress, transferSchedulerABI } from 'transfer-scheduler-sdk';
+import { TransferSchedulerContractAddress, transferSchedulerABI } from '@mnrgreg/transfer-scheduler-sdk';
 import { getTokenSymbol, getTokenDecimals } from './App';
 import { formatGwei, formatEther, parseGwei } from 'viem'
 import { TokenAllowances } from './TokenAllowances';
@@ -121,6 +121,8 @@ export function QueueTransferTransaction() {
             hostname = 'base-mainnet.g.alchemy.com';
         } else if (chainId === 42161) {
             hostname = 'arb-mainnet.g.alchemy.com';
+        } else if (chainId === 137) {
+            hostname = 'polygon-mainnet.g.alchemy.com';
         } else if (chainId === 11155111) {
             hostname = 'eth-sepolia.g.alchemy.com';
         }

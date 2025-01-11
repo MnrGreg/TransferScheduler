@@ -1,5 +1,5 @@
 {
-  "name": "transferscheduler",
+  "name": "transferscheduler-ui",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,11 +10,11 @@
     "preview": "vite preview --port 8080"
   },
   "dependencies": {
+    "@mnrgreg/transfer-scheduler-sdk": "file:../client-sdk",
     "@tanstack/react-query": "5.45.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-native-securerandom": "^1.0.1",
-    "transfer-scheduler-sdk": "file:../client-sdk/transfer-scheduler-sdk-1.0.0.tgz",
     "viem": "latest",
     "wagmi": "latest"
   },

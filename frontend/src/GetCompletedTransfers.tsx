@@ -2,7 +2,7 @@ import React from 'react';
 import { useAccount, useWatchContractEvent } from 'wagmi';
 import { readContract, getEnsName } from '@wagmi/core';
 import { config, mainnetConfig } from './wagmi';
-import { TransferSchedulerContractAddress, transferSchedulerABI, QueuedTransferRecords, Status, TransferScheduledEventLog } from 'transfer-scheduler-sdk';
+import { TransferSchedulerContractAddress, transferSchedulerABI, QueuedTransferRecords, Status, TransferScheduledEventLog } from '@mnrgreg/transfer-scheduler-sdk';
 import { getTokenSymbol, getTokenDecimals } from './App';
 import { getContractEvents } from 'viem/actions';
 import { formatGwei } from 'viem'
