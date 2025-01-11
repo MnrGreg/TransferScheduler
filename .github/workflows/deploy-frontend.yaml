@@ -24,7 +24,8 @@ jobs:
       - name: NPM Install and Build
         run: |
           cd frontend
-          npm config set @mnrgreg:registry=https://npm.pkg.github.com/ 
+          npm config set @mnrgreg:registry=https://npm.pkg.github.com/
+          npm config set //npm.pkg.github.com/:_authToken=${{secrets.GITHUB_TOKEN}}
           npm install @mnrgreg/transfer-scheduler-sdk
           npm run build
 
