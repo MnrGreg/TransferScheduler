@@ -1,6 +1,6 @@
 import Web3, { WebSocketProvider, } from 'web3';
 import { ContractLogsSubscription } from 'web3-eth-contract';
-import { TransferSchedulerContractAddress, transferSchedulerABI, TransferScheduledEventLog, AddressNonceRecord, Status } from 'transfer-scheduler-sdk';
+import { TransferSchedulerContractAddress, transferSchedulerABI, TransferScheduledEventLog, AddressNonceRecord, Status } from '@mnrgreg/transfer-scheduler-sdk';
 import * as dotenv from 'dotenv';
 dotenv.config();
 

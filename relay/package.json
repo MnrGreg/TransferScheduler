@@ -1,7 +1,7 @@
 {
   "dependencies": {
+    "@mnrgreg/transfer-scheduler-sdk": "file:../client-sdk",
     "dotenv": "^16.4.7",
-    "transfer-scheduler-sdk": "file:transfer-scheduler-sdk-1.0.0.tgz",
     "ts-node": "^10.9.2",
     "web3": "^4.15.0",
     "web3-eth-contract": "^4.7.2"
