@@ -55,4 +55,54 @@ export declare function queueScheduledTransfer(web3: Web3, scheduledTransfer: Sc
     } | undefined;
 }>;
 export declare function getTransfers(web3: Web3, address: `0x${string}`, nonce: number): Promise<AddressNonceRecord>;
+export declare function cancelScheduledTransfer(web3: Web3, address: `0x${string}`, nonce: number): Promise<{
+    readonly transactionHash: string;
+    readonly transactionIndex: bigint;
+    readonly blockHash: string;
+    readonly blockNumber: bigint;
+    readonly from: string;
+    readonly to: string;
+    readonly cumulativeGasUsed: bigint;
+    readonly gasUsed: bigint;
+    readonly effectiveGasPrice?: bigint | undefined;
+    readonly contractAddress?: string | undefined;
+    readonly logs: {
+        readonly id?: string | undefined;
+        readonly removed?: boolean | undefined;
+        readonly logIndex?: bigint | undefined;
+        readonly transactionIndex?: bigint | undefined;
+        readonly transactionHash?: string | undefined;
+        readonly blockHash?: string | undefined;
+        readonly blockNumber?: bigint | undefined;
+        readonly address?: string | undefined;
+        readonly data?: string | undefined;
+        readonly topics?: string[] | undefined;
+    }[];
+    readonly logsBloom: string;
+    readonly root: string;
+    readonly status: bigint;
+    readonly type?: bigint | undefined;
+    events?: {
+        [x: string]: {
+            readonly event: string;
+            readonly id?: string | undefined;
+            readonly logIndex?: bigint | undefined;
+            readonly transactionIndex?: bigint | undefined;
+            readonly transactionHash?: string | undefined;
+            readonly blockHash?: string | undefined;
+            readonly blockNumber?: bigint | undefined;
+            readonly address: string;
+            readonly topics: string[];
+            readonly data: string;
+            readonly raw?: {
+                data: string;
+                topics: unknown[];
+            } | undefined;
+            readonly returnValues: {
+                [x: string]: unknown;
+            };
+            readonly signature?: string | undefined;
+        };
+    } | undefined;
+}>;
 //# sourceMappingURL=web3.d.ts.map

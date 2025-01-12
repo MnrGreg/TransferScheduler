@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getTransfers = exports.queueScheduledTransfer = exports.fetchQueuedTransfers = exports.getRelayCharge = exports.getGasTokenAddress = exports.createTypedData = void 0;
+exports.cancelScheduledTransfer = exports.getTransfers = exports.queueScheduledTransfer = exports.fetchQueuedTransfers = exports.getRelayCharge = exports.getGasTokenAddress = exports.createTypedData = void 0;
 const constants_1 = require("./constants");
 // Function to create typed data for Scheduled Transfer
 function createTypedData(chainId, scheduledTransfer) {
@@ -87,4 +87,9 @@ async function getTransfers(web3, address, nonce) {
     return addressNonceRecord;
 }
 exports.getTransfers = getTransfers;
+async function cancelScheduledTransfer(web3, address, nonce) {
+    const scheduledTransferContract = new web3.eth.Contract(constants_1.transferSchedulerABI, constants_1.TransferSchedulerContractAddress);
+    return await scheduledTransferContract.methods.cancelScheduledTransfer(address, nonce).send();
+}
+exports.cancelScheduledTransfer = cancelScheduledTransfer;
 //# sourceMappingURL=web3.js.map
