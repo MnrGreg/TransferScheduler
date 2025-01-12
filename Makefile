@@ -37,7 +37,7 @@ stop:
 	fi
 
 start-anvil-fork: stop
-	anvil --chain-id ${FORK_CHAIN_ID} --block-time 30 \
+	anvil --chain-id ${FORK_CHAIN_ID} --block-time 10 \
 	--fork-url ${FORK_URL} & echo $$! >> .pids
 	sleep 10
 
