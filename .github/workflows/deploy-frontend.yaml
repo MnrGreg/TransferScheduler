@@ -2,8 +2,8 @@ name: Build and Deploy Frontnd
 on: 
   push:
     branches: [main]
-    # paths:
-    #   - frontend/**
+    paths:
+      - frontend/**
   workflow_run:
     workflows: [Build and Publish SDK NPM Package]
     types:
