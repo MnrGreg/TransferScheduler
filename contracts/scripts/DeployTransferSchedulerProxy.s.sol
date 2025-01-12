@@ -13,6 +13,7 @@ contract DeployScript is Script {
         // Arbitrum WETH: 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1    gasUsage: 800000
         // Base WETH: 0x4200000000000000000000000000000000000006    gasUsage: 380000
         // Ethereum Sepolia: 0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14    gasUsage: 380000
+        // Polygon WPOL: 0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270 gasUsage: 380000
         address proxy = Upgrades.deployUUPSProxy(
             "TransferSchedulerV1.sol",
             abi.encodeCall(

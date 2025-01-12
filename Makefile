@@ -74,7 +74,7 @@ start-relay:
 	(RPC_URL=ws://localhost:8545 PRIVATE_KEY=${RELAYER_KEY} FROM_BLOCK=latest MAX_PRIORITY_FEE_PER_GAS=${MAX_PRIORITY_FEE_PER_GAS} ts-node relay-worker.ts & echo $$! >> ../.pids)
 
 start-webclient:
-	cd frontend && npm install ../client-sdk/ && (npm run dev & echo $$! >> ../.pids)
+	cd frontend && npm install @mnrgreg/transfer-scheduler-sdk --registry=https://npm.pkg.github.com/ && (npm run dev & echo $$! >> ../.pids)
 
 start-example-app:
 	cd client-sdk/example-app && \
