@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@mnrgreg/transfer-scheduler-sdk": "file:../client-sdk",
+    "@mnrgreg/transfer-scheduler-sdk": "^1.0.3",
     "dotenv": "^16.4.7",
     "ts-node": "^10.9.2",
     "web3": "^4.15.0",

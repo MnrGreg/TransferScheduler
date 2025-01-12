@@ -40,7 +40,7 @@ The frontend provides an example user interface for:
 - Watching for TransferScheduled events
 - Listing historical completed or future uncompleted transfers
 
-An demo example is published at [https://mnrgreg.github.io/TransferScheduler/](https://mnrgreg.github.io/TransferScheduler/) which uses the [Base Mainnet](https://basescan.org/address/0x40f4554f64719c1e0bdb1246c8fe444e38f57678#writeContract) and [Arbitrum Mainnet](https://arbiscan.io/address/0x40f4554f64719c1e0bdb1246c8fe444e38f57678#writeContract) with `WETH` as the relay gas token.
+An demo example is published at [https://mnrgreg.github.io/TransferScheduler/](https://mnrgreg.github.io/TransferScheduler/) which uses [Arbitrum Mainnet](https://arbiscan.io/address/0xBa551D945d9d4f14F7F6abc9abd26BD2684fA940#writeProxyContract) and [Base Mainnet](https://basescan.org/address/0xBa551D945d9d4f14F7F6abc9abd26BD2684fA940#writeProxyContract) with `WETH` as the relay gas token and [Polygon Mainnet](https://polygonscan.com/address/0xBa551D945d9d4f14F7F6abc9abd26BD2684fA940#writeProxyContract) with `WPOL`.
 
 ### Client SDK
 The client SDK provides a JavaScript library for interacting with the TransferScheduler contract. It includes functions for:
