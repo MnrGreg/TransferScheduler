@@ -19,17 +19,17 @@ export const GetCompletedTransfers = () => {
     const [tokenDecimals, setTokenDecimals] = React.useState<Record<string, number>>({});
     const [ensNames, setEnsNames] = React.useState<Record<string, string | null>>({});
 
-    useWatchContractEvent({
-        address: TransferSchedulerContractAddress,
-        abi: transferSchedulerABI,
-        eventName: 'TransferScheduled',
-        args: {
-            owner: address
-        },
-        poll: true,
-        pollingInterval: 5_00,
-        onLogs: () => setUpdateTrigger(prev => prev + 1),
-    });
+    // useWatchContractEvent({
+    //     address: TransferSchedulerContractAddress,
+    //     abi: transferSchedulerABI,
+    //     eventName: 'TransferScheduled',
+    //     args: {
+    //         owner: address
+    //     },
+    //     poll: true,
+    //     pollingInterval: 5_00,
+    //     onLogs: () => setUpdateTrigger(prev => prev + 1),
+    // });
 
     useWatchContractEvent({
         address: TransferSchedulerContractAddress,

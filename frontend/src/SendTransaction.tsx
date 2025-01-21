@@ -30,7 +30,7 @@ export function QueueTransferTransaction() {
     const [selectedToken, setSelectedToken] = useState('');
     const [amountInput, setAmountInput] = useState<string>(''); // Temporary state for input
     const [amount, setAmount] = useState<bigint | null>(null); // State for BigInt amount
-    const [ethPrice, setEthPrice] = useState<number | null>(null);
+    const [gasCurrencyPrice, setGasCurrencyPrice] = useState<number | null>(null);
     const [to, setTo] = React.useState<string>('');
     const [resolvedName, setResolvedName] = React.useState<string | null>(null);
     const [resolvedAddress, setResolvedAddress] = React.useState<string | null>(null);
@@ -335,14 +335,21 @@ export function QueueTransferTransaction() {
 
     // TODO: Use relayGasTokenName address and chain ID to lookup price 
     useEffect(() => {
-        const url = 'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd';
+        let currency = '';
+        if (chainId === 8453 || chainId === 42161 || chainId === 11155111) {
+            currency = 'ethereum';
+        } else if (chainId === 137) {
+            currency = 'matic-network';
+        }
+
+        const url = `https://api.coingecko.com/api/v3/simple/price?ids=${currency}&vs_currencies=usd`;
         const options = { method: 'GET', headers: { accept: 'application/json' } };
 
         fetch(url, options)
             .then(res => res.json())
             .then(json => {
-                const ethPrice = json.ethereum.usd;
-                setEthPrice(ethPrice);
+                const gasCurrencyPrice = json[`${currency}`].usd;
+                setGasCurrencyPrice(gasCurrencyPrice);
             })
             .catch(err => console.error(err));
     }, []);
@@ -449,7 +456,7 @@ export function QueueTransferTransaction() {
                 {isPending ? 'Confirming...' : 'Sign and queue transfer onchain'}
             </button>
             <div style={{ marginBottom: '8px' }}>
-                <span style={{ fontStyle: 'italic' }} title={`relay compensation = block.basefee (${maxBaseFee}) * gas (${relayGasUsage}) * relay commission (${relayGasCommissionPercentage}%)`}>* Relay compensation: {formatEther(relayCommissionTotal)} {relayGasTokenName} ({ethPrice && relayCommissionTotal ? (Number(formatEther(relayCommissionTotal)) * ethPrice).toFixed(2) : '0'} USD)</span>
+                <span style={{ fontStyle: 'italic' }} title={`relay compensation = block.basefee (${maxBaseFee}) * gas (${relayGasUsage}) * relay commission (${relayGasCommissionPercentage}%)`}>* Relay compensation: {formatEther(relayCommissionTotal)} {relayGasTokenName} ({gasCurrencyPrice && relayCommissionTotal ? (Number(formatEther(relayCommissionTotal)) * gasCurrencyPrice).toFixed(2) : '0'} USD)</span>
             </div>
             {error && <div style={{ color: 'red', marginBottom: '8px' }}>{error.message}</div>}
             {hash && <div>Transaction hash: {hash}</div>}
